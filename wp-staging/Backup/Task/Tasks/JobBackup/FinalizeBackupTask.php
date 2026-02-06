@@ -144,7 +144,7 @@ class FinalizeBackupTask extends BackupTask
 
         if ($metadataAdded && $isLastStep) {
             $steps->finish();
-            $this->logger->info('Successfully created backup file');
+            $this->logger->info('Backup file finalized successfully. Now testing backup integrity...');
 
             return $this->generateResponse(false);
         }
@@ -173,13 +173,13 @@ class FinalizeBackupTask extends BackupTask
             $this->stepsDto->setTotal(1);
             $this->jobDataDto->setMultipartFilesInfo([
                 [
-                    'category'    => '',
-                    'index'       => null,
-                    'filePath'    => null,
-                    'destination' => null,
-                    'status'      => 'Pending',
-                    'sizeBeforeAddingIndex' => 0
-                ]
+                    'category'              => '',
+                    'index'                 => null,
+                    'filePath'              => null,
+                    'destination'           => null,
+                    'status'                => 'Pending',
+                    'sizeBeforeAddingIndex' => 0,
+                ],
             ]);
 
             return;
@@ -236,6 +236,7 @@ class FinalizeBackupTask extends BackupTask
         $backupMetadata->setIsExportingOtherWpRootFiles($this->jobDataDto->getIsExportingOtherWpRootFiles());
         $backupMetadata->setIsExportingDatabase($this->jobDataDto->getIsExportingDatabase());
         $backupMetadata->setScheduleId($this->jobDataDto->getScheduleId());
+        $backupMetadata->setScheduleRecurrence($this->jobDataDto->getScheduleRecurrence());
         $backupMetadata->setMultipartMetadata(null);
         $backupMetadata->setCreatedOnPro(WPStaging::isPro());
         $backupMetadata->setHostingType($this->siteInfo->getHostingType());
@@ -301,7 +302,7 @@ class FinalizeBackupTask extends BackupTask
         $backupMetadata->setPhpVersion(phpversion());
         $backupMetadata->setWpVersion($wp_version);
         /** @phpstan-ignore-line */
-        $backupMetadata->setWpDbVersion($wp_db_version);
+        $backupMetadata->setWpDbVersion((string)$wp_db_version);
         /** @phpstan-ignore-line */
         $backupMetadata->setDbCollate($this->wpdb->collate);
         $backupMetadata->setDbCharset($this->wpdb->charset);

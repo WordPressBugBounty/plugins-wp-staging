@@ -2,19 +2,32 @@
 
 namespace WPStaging\Backend\Modules\Views\Forms;
 
-use WPStaging\Core\Forms\Elements\Check;
 use WPStaging\Core\Forms\Elements\Color;
 use WPStaging\Core\Forms\Elements\Numerical;
 use WPStaging\Core\Forms\Elements\Select;
 use WPStaging\Core\Forms\Elements\SelectMultiple;
 use WPStaging\Core\Forms\Elements\Text;
+use WPStaging\Core\Forms\Elements\Toggle;
 use WPStaging\Core\Forms\Form;
 use WPStaging\Backend\Modules\Views\Tabs\Tabs;
 use WPStaging\Framework\Assets\Assets;
+use WPStaging\Framework\Facades\Hooks;
+use WPStaging\Framework\Job\Dto\JobDataDto;
 
 /**
- * Class Settings
- * @package WPStaging\Backend\Modules\Views\Forms
+ * Builds and manages the settings form for WP Staging plugin configuration
+ *
+ * This class generates the settings form structure for the WordPress admin interface.
+ * It creates form elements for various plugin settings including:
+ * - Database copy and search/replace query limits
+ * - File copy limits and batch sizes
+ * - CPU load priority and request delays
+ * - Feature toggles (optimizer, debug mode, compression)
+ * - User access permissions and role management
+ * - Admin bar customization
+ *
+ * The class dynamically builds forms based on available tabs and handles both
+ * free and pro version settings appropriately.
  */
 class Settings
 {
@@ -56,10 +69,10 @@ class Settings
         $element = new Numerical(
             "wpstg_settings[queryLimit]",
             [
-            "class" => "medium-text",
-            "step" => 1,
-            "max" => 999999,
-            "min" => 0
+                "class" => "medium-text",
+                "step"  => 1,
+                "max"   => 999999,
+                "min"   => 0,
             ]
         );
 
@@ -72,10 +85,10 @@ class Settings
         $element = new Numerical(
             "wpstg_settings[querySRLimit]",
             [
-            "class" => "medium-text",
-            "step" => 1,
-            "max" => 999999,
-            "min" => 0
+                "class" => "medium-text",
+                "step"  => 1,
+                "max"   => 999999,
+                "min"   => 0,
             ]
         );
 
@@ -91,14 +104,14 @@ class Settings
             "wpstg_settings[fileLimit]",
             $options,
             [
-            "class" => "medium-text",
-            "step" => 1,
-            "max" => 999999,
-            "min" => 0
+                "class" => "medium-text",
+                "step"  => 1,
+                "max"   => 999999,
+                "min"   => 0,
             ]
         );
 
-        $defaultFileLimit = defined('WPSTG_IS_DEV') && WPSTG_IS_DEV ? 500 : 50;
+        $defaultFileLimit = (defined('WPSTG_IS_DEV') && WPSTG_IS_DEV || defined('WPSTG_TEST') && WPSTG_TEST) ? 500 : 50;
 
         $this->form["general"]->add(
             $element->setLabel(__("File Copy Limit", "wp-staging"))
@@ -111,10 +124,10 @@ class Settings
         $element = new Numerical(
             "wpstg_settings[maxFileSize]",
             [
-            "class" => "medium-text",
-            "step" => 1,
-            "max" => 999999,
-            "min" => 0
+                "class" => "medium-text",
+                "step"  => 1,
+                "max"   => 999999,
+                "min"   => 0,
             ]
         );
 
@@ -128,10 +141,10 @@ class Settings
         $element = new Numerical(
             "wpstg_settings[batchSize]",
             [
-            "class" => "medium-text",
-            "step" => 1,
-            "max" => 999999,
-            "min" => 0
+                "class" => "medium-text",
+                "step"  => 1,
+                "max"   => 999999,
+                "min"   => 0,
             ]
         );
 
@@ -145,9 +158,9 @@ class Settings
         $element = new Select(
             "wpstg_settings[cpuLoad]",
             [
-            "high" => __("High (fast)", "wp-staging"),
-            "medium" => __("Medium (average)", "wp-staging"),
-            "low" => __("Low (slow)", "wp-staging")
+                "high"   => __("High", "wp-staging"),
+                "medium" => __("Medium", "wp-staging"),
+                "low"    => __("Low", "wp-staging"),
             ]
         );
 
@@ -163,10 +176,10 @@ class Settings
         $element = new Numerical(
             "wpstg_settings[delayRequests]",
             [
-            "class" => "medium-text",
-            "step" => 1,
-            "max" => 5,
-            "min" => 0
+                "class" => "medium-text",
+                "step"  => 1,
+                "max"   => 5,
+                "min"   => 0,
             ]
         );
 
@@ -178,7 +191,7 @@ class Settings
 
 
        // Optimizer
-        $element = new Check(
+        $element = new Toggle(
             "wpstg_settings[optimizer]",
             ['1' => ""]
         );
@@ -192,7 +205,7 @@ class Settings
 
         // Disable admin authorization
         if (!defined('WPSTGPRO_VERSION')) {
-            $element = new Check(
+            $element = new Toggle(
                 "wpstg_settings[disableAdminLogin]",
                 ['1' => '']
             );
@@ -206,7 +219,7 @@ class Settings
 
         // Keep permalinks
         if (defined('WPSTGPRO_VERSION')) {
-            $element = new Check(
+            $element = new Toggle(
                 "wpstg_settings[keepPermalinks]",
                 ['1' => '']
             );
@@ -219,7 +232,7 @@ class Settings
         }
 
        // Debug Mode
-        $element = new Check(
+        $element = new Toggle(
             "wpstg_settings[debugMode]",
             ['1' => '']
         );
@@ -231,7 +244,7 @@ class Settings
         );
 
        // Remove Data on Uninstall?
-        $element = new Check(
+        $element = new Toggle(
             "wpstg_settings[unInstallOnDelete]",
             ['1' => '']
         );
@@ -243,7 +256,7 @@ class Settings
         );
 
        // Check Directory Sizes
-        $element = new Check(
+        $element = new Toggle(
             "wpstg_settings[checkDirectorySize]",
             ['1' => '']
         );
@@ -284,12 +297,12 @@ class Settings
 
         // Compress Backups
         if (defined('WPSTGPRO_VERSION')) {
-            $element = new Check(
+            $element = new Toggle(
                 "wpstg_settings[enableCompression]",
                 ['1' => '']
             );
 
-            $isMultiPartEnabled = apply_filters('wpstg.backup.isMultipartBackup', false);
+            $isMultiPartEnabled = Hooks::applyFilters(JobDataDto::FILTER_IS_MULTIPART_BACKUP, false);
 
             if (!$isMultiPartEnabled) {
                 $this->form["general"]->add(
@@ -301,7 +314,7 @@ class Settings
                 $this->form["general"]->add(
                     $element->setLabel(__("Compress Backups (Incompatible with Multipart Backups)", "wp-staging"))
                     ->setAttribute('disabled', 'disabled')
-                    ->setDefault(false),
+                    ->setDefault(''),
                     'wpstg-settings-enable-compression'
                 );
             }

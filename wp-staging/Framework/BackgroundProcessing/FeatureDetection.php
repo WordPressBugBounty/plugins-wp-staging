@@ -28,6 +28,9 @@ class FeatureDetection
     const ACTION_AJAX_SUPPORT_FEATURE_DETECTION = 'wpstg_q_ajax_support_feature_detection';
 
     /** @var string */
+    const FILTER_HTTPS_LOCAL_SSL_VERIFY = 'https_local_ssl_verify';
+
+    /** @var string */
     const AJAX_OPTION_NAME = 'wpstg_q_feature_detection_ajax_available';
 
     /** @var string */
@@ -115,7 +118,7 @@ class FeatureDetection
 
         $ajaxUrl = add_query_arg([
             'action'      => self::ACTION_AJAX_TEST,
-            '_ajax_nonce' => wp_create_nonce(self::ACTION_AJAX_TEST)
+            '_ajax_nonce' => wp_create_nonce(self::ACTION_AJAX_TEST),
         ], admin_url('admin-ajax.php'));
 
         $hash = md5(uniqid(__CLASS__, true));
@@ -124,12 +127,12 @@ class FeatureDetection
 
         $response = wp_remote_post(esc_url_raw($ajaxUrl), [
             'headers'   => [
-                'X-WPSTG-Request' => self::ACTION_AJAX_TEST
+                'X-WPSTG-Request' => self::ACTION_AJAX_TEST,
             ],
             'blocking'  => false,
             'timeout'   => 0.01,
             'cookies'   => !empty($_COOKIE) ? $_COOKIE : [],
-            'sslverify' => apply_filters('https_local_ssl_verify', false),
+            'sslverify' => apply_filters(self::FILTER_HTTPS_LOCAL_SSL_VERIFY, false),
             'body'      => [self::AJAX_OPTION_NAME => $hash],
         ]);
 
@@ -162,7 +165,7 @@ class FeatureDetection
         do {
             debug_log('runAjaxFeatureTest waited ' . number_format($waited / 1e6, 1) . ' seconds...', 'info', false);
             $waited += $waitStep;
-            usleep($waitStep);
+            usleep((int)$waitStep);
 
             if ($test()) {
                 // Look no further, it worked.

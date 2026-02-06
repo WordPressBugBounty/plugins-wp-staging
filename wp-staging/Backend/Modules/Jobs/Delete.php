@@ -60,7 +60,7 @@ class Delete extends Job
     public $wpdb;
 
     /**
-     * @var bool
+     * @var bool|null
      */
     private $isExternalDb;
 
@@ -215,7 +215,7 @@ class Delete extends Job
             foreach ($tables as $table) {
                 $this->tables[] = [
                     "name" => $table->Name,
-                    "size" => $this->utilsMath->formatSize($table->Data_length + $table->Index_length)
+                    "size" => $this->utilsMath->formatSize($table->Data_length + $table->Index_length),
                 ];
             }
         }
@@ -326,7 +326,7 @@ class Delete extends Job
         $this->job = (object)[
             "current"               => "tables",
             "nextDirectoryToDelete" => $this->clone->path,
-            "name"                  => $this->clone->name
+            "name"                  => $this->clone->name,
         ];
 
         $this->cache->save($this->job);
@@ -570,6 +570,7 @@ class Delete extends Job
             }
 
             $db = mysqli_init();
+            // @phpstan-ignore-next-line - null is valid for port and socket parameters
             $db->real_connect($this->clone->databaseServer, $this->clone->databaseUser, $this->clone->databasePassword, $this->clone->databaseDatabase, null, null, MYSQL_CLIENT_FLAGS);
         } else {
             $db = new mysqli($this->clone->databaseServer, $this->clone->databaseUser, $this->clone->databasePassword, $this->clone->databaseDatabase);

@@ -147,11 +147,14 @@ class SystemInfo
 
         $permissions = fileperms(ABSPATH);
 
-        $output .= $this->info("ABSPATH Fileperms:", $permissions);
-
-        $permissions = substr(sprintf('%o', $permissions), -4);
-
-        $output .= $this->info("ABSPATH Permissions:", $permissions);
+        if ($permissions !== false) {
+            $output .= $this->info("ABSPATH Fileperms:", (string)$permissions);
+            $permissions = substr(sprintf('%o', $permissions), -4);
+            $output .= $this->info("ABSPATH Permissions:", $permissions);
+        } else {
+            $output .= $this->info("ABSPATH Fileperms:", "N/A");
+            $output .= $this->info("ABSPATH Permissions:", "N/A");
+        }
 
         $absPathStat = stat(ABSPATH);
         if (!$absPathStat) {
@@ -229,7 +232,7 @@ class SystemInfo
         $multisite = new Multisite();
 
         $output = $this->info("Multisite:", "Yes");
-        $output .= $this->info("Multisite Blog ID:", get_current_blog_id());
+        $output .= $this->info("Multisite Blog ID:", (string)get_current_blog_id());
         $output .= $this->info("MultiSite URL:", $multisite->getHomeURL());
         $output .= $this->info("MultiSite URL without scheme:", $multisite->getHomeUrlWithoutScheme());
         $output .= $this->info("MultiSite is Main Site:", is_main_site() ? 'Yes' : 'No');
@@ -267,6 +270,8 @@ class SystemInfo
     {
         $settings                               = (object)get_option('wpstg_settings', []);
         $optionBackupScheduleErrorReport        = get_option(BackupScheduler::OPTION_BACKUP_SCHEDULE_ERROR_REPORT);
+        $optionBackupScheduleWarningReport      = get_option(BackupScheduler::OPTION_BACKUP_SCHEDULE_WARNING_REPORT);
+        $optionBackupScheduleGeneralReport      = get_option(BackupScheduler::OPTION_BACKUP_SCHEDULE_GENERAL_REPORT);
         $optionBackupScheduleReportEmail        = get_option(Notifications::OPTION_BACKUP_SCHEDULE_REPORT_EMAIL);
         $optionBackupScheduleSlackErrorReport   = get_option(BackupScheduler::OPTION_BACKUP_SCHEDULE_SLACK_ERROR_REPORT);
         $optionBackupScheduleReportSlackWebhook = get_option(BackupScheduler::OPTION_BACKUP_SCHEDULE_REPORT_SLACK_WEBHOOK);
@@ -304,8 +309,10 @@ class SystemInfo
         $output .= $this->info("Admin Bar Color:", isset($settings->adminBarColor) ? $settings->adminBarColor : self::NOT_SET_LABEL);
         $analyticsHasConsent = get_option('wpstg_analytics_has_consent');
         $output .= $this->info("Send Usage Information:", !empty($analyticsHasConsent) ? 'true' : 'false');
-        $output .= $this->info("Send Backup Errors via E-Mail:", !empty($optionBackupScheduleErrorReport) && $optionBackupScheduleErrorReport === 'true' ? 'true' : 'false');
-        $output .= $this->info("E-Mail Address:", !empty($optionBackupScheduleReportEmail) && is_email($optionBackupScheduleReportEmail) ? $optionBackupScheduleReportEmail : self::NOT_SET_LABEL);
+        $output .= $this->info("Send Backup Errors via Email:", !empty($optionBackupScheduleErrorReport) && $optionBackupScheduleErrorReport === 'true' ? 'true' : 'false');
+        $output .= $this->info("Send Backup Warnings via Email:", !empty($optionBackupScheduleWarningReport) && $optionBackupScheduleWarningReport === 'true' ? 'true' : 'false');
+        $output .= $this->info("Send Backup General Report via Email:", !empty($optionBackupScheduleGeneralReport) && $optionBackupScheduleGeneralReport === 'true' ? 'true' : 'false');
+        $output .= $this->info("Email Address:", !empty($optionBackupScheduleReportEmail) && is_email($optionBackupScheduleReportEmail) ? $optionBackupScheduleReportEmail : self::NOT_SET_LABEL);
         $output .= $this->info("Send Backup Errors via Slack Webhook:", !empty($optionBackupScheduleSlackErrorReport) && $optionBackupScheduleSlackErrorReport === 'true' ? 'true' : ( WPStaging::isPro() ? 'false' : self::NOT_SET_LABEL ));
         $output .= $this->info("Slack Webhook URL:", WPStaging::isPro() && !empty($optionBackupScheduleReportSlackWebhook) ? self::REMOVED_LABEL : self::NOT_SET_LABEL);
         $output .= $this->info("Backup Compression:", isset($settings->enableCompression) ? ($settings->enableCompression ? 'On' : 'Off') : self::NOT_SET_LABEL);
@@ -428,7 +435,7 @@ class SystemInfo
                 "sslverify"  => false,
                 "timeout"    => 60,
                 "user-agent" => "WPSTG/" . WPStaging::getVersion(),
-                "body"       => ["cmd" => "_notify-validate"]
+                "body"       => ["cmd" => "_notify-validate"],
             ]
         );
 
@@ -625,7 +632,7 @@ class SystemInfo
     public function php(): string
     {
         $output = $this->info("PHP memory_limit:", ini_get("memory_limit"));
-        $output .= $this->info("PHP memory_limit in Bytes:", wp_convert_hr_to_bytes(ini_get("memory_limit")));
+        $output .= $this->info("PHP memory_limit in Bytes:", (string)wp_convert_hr_to_bytes(ini_get("memory_limit")));
         $output .= $this->info("PHP max_execution_time:", ini_get("max_execution_time"));
         $output .= $this->info("PHP Safe Mode:", ($this->isSafeModeEnabled() ? "Enabled" : "Disabled"));
         $output .= $this->info("PHP Upload Max File Size:", ini_get("upload_max_filesize"));
@@ -711,7 +718,7 @@ class SystemInfo
             'CURL_VERSION_IPV6',
             'CURL_VERSION_KERBEROS4',
             'CURL_VERSION_SSL',
-            'CURL_VERSION_LIBZ'
+            'CURL_VERSION_LIBZ',
         ];
 
         $output = $this->header("PHP Extensions");
@@ -850,11 +857,11 @@ class SystemInfo
         /** @var Queue */
         $queue = WPStaging::make(Queue::class);
 
-        $output .= $this->info("Backup All Actions in DB:", $queue->count());
-        $output .= $this->info("Backup Pending Actions (ready):", $queue->count(Queue::STATUS_READY));
-        $output .= $this->info("Backup Processing Actions (processing):", $queue->count(Queue::STATUS_PROCESSING));
-        $output .= $this->info("Backup Completed Actions (completed):", $queue->count(Queue::STATUS_COMPLETED));
-        $output .= $this->info("Backup Failed Actions (failed):", $queue->count(Queue::STATUS_FAILED));
+        $output .= $this->info("Backup All Actions in DB:", (string)$queue->count());
+        $output .= $this->info("Backup Pending Actions (ready):", (string)$queue->count(Queue::STATUS_READY));
+        $output .= $this->info("Backup Processing Actions (processing):", (string)$queue->count(Queue::STATUS_PROCESSING));
+        $output .= $this->info("Backup Completed Actions (completed):", (string)$queue->count(Queue::STATUS_COMPLETED));
+        $output .= $this->info("Backup Failed Actions (failed):", (string)$queue->count(Queue::STATUS_FAILED));
 
         return $output;
     }
@@ -878,14 +885,14 @@ class SystemInfo
     {
         $backups = WPStaging::make(ListableBackupsCollection::class)->getListableBackups();
 
-        $output = $this->info("Number of Backups:", count($backups));
+        $output = $this->info("Number of Backups:", (string)count($backups));
 
         $totalBackupSize = 0;
         foreach ($backups as $backup) {
             $totalBackupSize += (float)$backup->size;
         }
 
-        $output .= $this->info("Backup Total File Size:", esc_html($totalBackupSize) . 'M');
+        $output .= $this->info("Backup Total File Size:", esc_html((string)$totalBackupSize) . 'M');
 
         return $output;
     }

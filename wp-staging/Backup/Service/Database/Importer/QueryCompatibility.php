@@ -5,6 +5,7 @@ use WPStaging\Framework\Traits\ApplyFiltersTrait;
 class QueryCompatibility
 {
     use ApplyFiltersTrait;
+    const FILTER_DATABASE_IMPORTER_REPLACE_COLLATION = 'wpstg.database.importer.replace_collation';
 
     public function removeDefiner(&$query)
     {
@@ -71,7 +72,7 @@ class QueryCompatibility
             if (strlen($identifier) < 64) {
                 continue;
             }
-            $shortIdentifier                    = uniqid(DatabaseImporter::TMP_DATABASE_PREFIX) . str_pad(rand(0, 999999), 6, '0');
+            $shortIdentifier                    = uniqid(DatabaseImporter::TMP_DATABASE_PREFIX) . str_pad((string)rand(0, 999999), 6, '0');
             $shortIdentifiers[$shortIdentifier] = $identifier;
         }
         $query = str_replace(array_values($shortIdentifiers), array_keys($shortIdentifiers), $query);
@@ -101,7 +102,7 @@ class QueryCompatibility
         $unknownCollation = $matches[1];
         $collationBefore = '';
         $collationAfter  = '';
-        $collationReplaceRules = $this->applyFilters('wpstg.database.importer.replace_collation', []);
+        $collationReplaceRules = $this->applyFilters(self::FILTER_DATABASE_IMPORTER_REPLACE_COLLATION, []);
         if (array_key_exists($unknownCollation, $collationReplaceRules)) {
             $collationBefore = $unknownCollation;
             $collationAfter  = $collationReplaceRules[$unknownCollation];

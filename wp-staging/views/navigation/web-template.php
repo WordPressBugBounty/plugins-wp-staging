@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @see views/_main/main-navigation.php
  * @see views/clone/index.php
@@ -9,9 +10,17 @@
  * @var bool $isCalledFromIndex
  */
 
-$wpstgAdminUrl          = get_admin_url() . 'admin.php?page=';
+use WPStaging\Core\WPStaging;
+use WPStaging\Framework\Newsfeed\NewsfeedProvider;
+
+$wpstgAdminUrl = get_admin_url() . 'admin.php?page=';
+
+// Get newsfeed data for header notification badge (JS handles seen state via localStorage)
+$newsfeedProvider  = WPStaging::make(NewsfeedProvider::class);
+$newsfeedData      = $newsfeedProvider->getNewsfeedData();
+$showNewsfeedBadge = !empty($newsfeedData);
 $menu = [
-    'tab-staging' => [
+    'tab-staging'     => [
         'tab'       => esc_html__('Staging', 'wp-staging'),
         'id'        => 'wpstg--tab--toggle--staging',
         'targetId'  => '',
@@ -19,7 +28,7 @@ $menu = [
         'page'      => 'wpstg_clone',
         'isActive'  => !empty($isStagingPage),
     ],
-    'tab-backup' => [
+    'tab-backup'      => [
         'tab'       => esc_html__('Backup & Migration', 'wp-staging'),
         'id'        => 'wpstg--tab--toggle--backup',
         'targetId'  => '',
@@ -27,7 +36,7 @@ $menu = [
         'page'      => 'wpstg_backup',
         'isActive'  => !empty($isBackupPage),
     ],
-    'tab-settings' => [
+    'tab-settings'    => [
         'tab'       => esc_html__('Settings', 'wp-staging'),
         'id'        => 'wpstg--tab--toggle--settigs',
         'targetId'  => '',
@@ -43,14 +52,14 @@ $menu = [
         'page'      => 'wpstg-tools',
         'isActive'  => !empty($isActiveSystemInfoPage),
     ],
-    'tab-license' => [
+    'tab-license'     => [
         'tab'       => esc_html__('Upgrade to Pro', 'wp-staging'),
         'id'        => 'wpstg--tab--toggle--license',
         'targetId'  => '',
         'targetUrl' => 'https://wp-staging.com',
         'page'      => 'wpstg-license',
         'isActive'  => !empty($isActiveLicensePage),
-    ]
+    ],
 ];
 
 if ($isCalledFromIndex) {
@@ -108,6 +117,18 @@ if (defined('WPSTGPRO_VERSION') && ((!empty($license->license) && $license->lice
                 ?>
             </li>
         <?php endforeach; ?>
+        <?php if ($showNewsfeedBadge) : ?>
+        <li class="wpstg-tab-item--vert-center">
+            <a href="#wpstg-newsfeed-container"
+               class="wpstg-newsfeed-notification"
+               id="wpstg-newsfeed-header-link"
+               style="display: none;">
+                <span class="wpstg-newsfeed-notification-badge">
+                    <?php esc_html_e('NEW', 'wp-staging'); ?>
+                </span>
+            </a>
+        </li>
+        <?php endif; ?>
         <li class="wpstg-tab-item--vert-center wpstg-tab-header-loader">
             <span class="wpstg-loader"></span>
         </li>

@@ -18,9 +18,23 @@ use WPStaging\Framework\Utils\PluginInfo;
 use WPStaging\Framework\Utils\Sanitize;
 use WPStaging\Staging\Sites;
 use SplFileInfo;
+use WPStaging\Framework\Adapter\WpAdapter;
+use WPStaging\Framework\Facades\Hooks;
 
 class BackupSizeCalculator extends AbstractFilesystemScanner
 {
+    /** @var string */
+    const FILTER_EXPORT_FILES_IGNORE_FILE_EXTENSIONS = 'wpstg.export.files.ignore.file_extension';
+
+    /** @var string */
+    const FILTER_EXPORT_FILES_IGNORE_FILE_BIGGER_THAN = 'wpstg.export.files.ignore.file_bigger_than';
+
+    /** @var string */
+    const FILTER_EXPORT_FILES_IGNORE_LARGE_FILES_BY_EXTENSION = 'wpstg.export.files.ignore.file_extension_bigger_than';
+
+    /** @var string */
+    const FILTER_BACKUP_EXCLUDED_DIRECTORIES = 'wpstg.backup.exclude.directories';
+
     /** @var Sanitize */
     protected $sanitize;
 
@@ -93,7 +107,7 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
         /**
          * Allow user to exclude certain file extensions from being backup.
          */
-        $this->ignoreFileExtensions = (array)apply_filters('wpstg.export.files.ignore.file_extension', [
+        $this->ignoreFileExtensions = (array)Hooks::applyFilters(self::FILTER_EXPORT_FILES_IGNORE_FILE_EXTENSIONS, [
             'wpstg', // WP STAGING backup files
             'gz',
             'tmp',
@@ -102,13 +116,13 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
         /**
          * Allow user to exclude files larger than given size from being backup.
          */
-        $this->ignoreFileBiggerThan = (int)apply_filters('wpstg.export.files.ignore.file_bigger_than', 200 * MB_IN_BYTES);
+        $this->ignoreFileBiggerThan = (int)Hooks::applyFilters(self::FILTER_EXPORT_FILES_IGNORE_FILE_BIGGER_THAN, 200 * MB_IN_BYTES);
 
         /**
          * Allow user to exclude files with extension larger than given size from being backup.
          */
-        $this->ignoreFileExtensionFilesBiggerThan = (array)apply_filters('wpstg.export.files.ignore.file_extension_bigger_than', [
-            'zip' => 10 * MB_IN_BYTES,
+        $this->ignoreFileExtensionFilesBiggerThan = (array)Hooks::applyFilters(self::FILTER_EXPORT_FILES_IGNORE_LARGE_FILES_BY_EXTENSION, [
+            'zip' => 50 * MB_IN_BYTES,
         ]);
 
         // Allows us to use isset for performance
@@ -128,7 +142,7 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
         $backupPart = isset($_POST['backup_part']) ? $this->sanitize->sanitizeString($_POST['backup_part']) : '';
         if (empty($backupPart)) {
             wp_send_json_error([
-                'message' => 'Invalid or missing backup part parameter'
+                'message' => 'Invalid or missing backup part parameter',
             ]);
         }
 
@@ -188,7 +202,7 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
 
         wp_send_json_success([
             'size'     => empty($formatedSize) ? '0.0 B' : $formatedSize,
-            'size_raw' => $partSize
+            'size_raw' => $partSize,
         ]);
     }
 
@@ -204,7 +218,7 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
 
         wp_send_json_success([
             'size'     => empty($formatedSize) ? '0.0 B' : $formatedSize,
-            'size_raw' => $partSize
+            'size_raw' => $partSize,
         ]);
     }
 
@@ -219,7 +233,7 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
 
         wp_send_json_success([
             'size'     => empty($formatedSize) ? '0.0 B' : $formatedSize,
-            'size_raw' => $partSize
+            'size_raw' => $partSize,
         ]);
     }
 
@@ -247,7 +261,7 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
         $formatedSize = $this->math->formatSize($totalSize);
         wp_send_json_success([
             'size'     => empty($formatedSize) ? '0.0 B' : $formatedSize,
-            'size_raw' => $totalSize
+            'size_raw' => $totalSize,
         ]);
     }
 
@@ -259,7 +273,7 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
     {
         if (WPStaging::isBasic()) {
             wp_send_json_success([
-                'size' => '0.0 B'
+                'size' => '0.0 B',
             ]);
         }
 
@@ -270,7 +284,7 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
         $formatedSize = $this->math->formatSize($partSize);
         wp_send_json_success([
             'size'     => empty($formatedSize) ? '0.0 B' : $formatedSize,
-            'size_raw' => $partSize
+            'size_raw' => $partSize,
         ]);
     }
 
@@ -288,7 +302,7 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
         $formatedSize = $this->math->formatSize($partSize);
         wp_send_json_success([
             'size'     => empty($formatedSize) ? '0.0 B' : $formatedSize,
-            'size_raw' => $partSize
+            'size_raw' => $partSize,
         ]);
     }
 
@@ -617,7 +631,7 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
          *
          * @return array An array of directories to exclude.
          */
-        $this->excludedDirectories = (array)apply_filters('wpstg.backup.exclude.directories', $excludedDirs);
+        $this->excludedDirectories = (array)apply_filters(self::FILTER_BACKUP_EXCLUDED_DIRECTORIES, $excludedDirs);
 
         return $this->excludedDirectories;
     }
@@ -679,7 +693,7 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
             return $this->pluginInfo->getActiveThemes();
         }
 
-        if (isset($this->isNetworkSiteBackup) && $this->isNetworkSiteBackup) {
+        if ($this->isNetworkSiteBackup) {
             return $this->pluginInfo->getActiveThemes();
         }
 
@@ -698,7 +712,7 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
 
         $pluginsDir    = rtrim($this->directory->getPluginsDirectory(), "/");
         $activePlugins = array_unique($this->getActivePlugins());
-        $excludeRules  = [$pluginsDir,];
+        $excludeRules  = [$pluginsDir];
 
         foreach ($activePlugins as $plugin) {
             $pluginDir = dirname($plugin);
@@ -721,7 +735,7 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
     protected function getActivePlugins(): array
     {
         // Prevent filters tampering with the active plugins list, such as wpstg-optimizer.php itself.
-        remove_all_filters('option_active_plugins');
+        remove_all_filters(WpAdapter::FILTER_OPTION_ACTIVE_PLUGINS);
 
         // Not multisite
         if (!is_multisite()) {
@@ -729,12 +743,12 @@ class BackupSizeCalculator extends AbstractFilesystemScanner
         }
 
         // Multisite but only current site is being backup
-        if (isset($this->isNetworkSiteBackup) && $this->isNetworkSiteBackup) {
+        if ($this->isNetworkSiteBackup) {
             return wp_get_active_and_valid_plugins();
         }
 
         // Prevent filters tampering with the active plugins list, such as wpstg-optimizer.php itself.
-        remove_all_filters('site_option_active_sitewide_plugins');
+        remove_all_filters(WpAdapter::FILTER_SITE_OPTION_ACTIVE_SITEWIDE_PLUGINS);
 
         return array_merge(wp_get_active_network_plugins(), $this->pluginInfo->getAllActivePluginsInSubsites());
     }

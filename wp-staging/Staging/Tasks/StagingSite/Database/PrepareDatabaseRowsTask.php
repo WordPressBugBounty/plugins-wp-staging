@@ -11,6 +11,7 @@ use WPStaging\Framework\Job\Dto\Task\RowsExporterTaskDto;
 use WPStaging\Framework\Job\Dto\TaskResponseDto;
 use WPStaging\Framework\Queue\SeekableQueueInterface;
 use WPStaging\Framework\Utils\Cache\Cache;
+use WPStaging\Framework\Utils\Times;
 use WPStaging\Staging\Interfaces\StagingDatabaseDtoInterface;
 use WPStaging\Staging\Interfaces\StagingOperationDtoInterface;
 use WPStaging\Staging\Interfaces\StagingSiteDtoInterface;
@@ -18,6 +19,10 @@ use WPStaging\Staging\Service\Database\RowsExporter;
 use WPStaging\Staging\Tasks\StagingTask;
 use WPStaging\Vendor\Psr\Log\LoggerInterface;
 
+/**
+ * This class is responsible for creating database dump so it can be imported on the staging site database.
+ * @see ImportDatabaseRowsTask for importing the dump.
+ */
 class PrepareDatabaseRowsTask extends StagingTask
 {
     /** @var RowsExporter */
@@ -86,9 +91,9 @@ class PrepareDatabaseRowsTask extends StagingTask
             ));
 
             $this->logger->debug(sprintf(
-                'Preparing table %s: Query time: %s s. Batch Size: %s. Last query json: %s.',
+                'Preparing table %s: Query time: %s. Batch Size: %s. Last query json: %s.',
                 $srcTable,
-                $this->jobDataDto->getDbRequestTime(),
+                Times::formatQueryTime($this->jobDataDto->getDbRequestTime()),
                 $this->jobDataDto->getBatchSize(),
                 $this->jobDataDto->getLastQueryInfoJSON()
             ));
@@ -121,7 +126,14 @@ class PrepareDatabaseRowsTask extends StagingTask
         $this->rowsExporter->inject($this->logger, $this->jobDataDto, $this->currentTaskDto->toRowsExporterDto());
         $this->rowsExporter->setFileName($this->directory->getCacheDirectory() . $this->jobDataDto->getId() . '.wpstgdbtmp.sql');
         $this->rowsExporter->setTables($tables);
-        $this->rowsExporter->setTablesToExclude($this->jobDataDto->getExcludedTables());
+
+        // Merge the tables that were completely excluded as well as the tables whose data needs to be excluded
+        $tablesToExclude = array_merge(
+            $this->jobDataDto->getExcludedTables(),
+            apply_filters(RowsExporter::FILTER_EXCLUDE_TABLES_DATA, RowsExporter::TABLES_EXCLUDED_FROM_DATA_COPYING)
+        );
+
+        $this->rowsExporter->setTablesToExclude($tablesToExclude);
         $this->rowsExporter->prefixSpecialFields();
         if (!$this->stepsDto->getTotal()) {
             $this->stepsDto->setCurrent(0);

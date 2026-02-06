@@ -286,7 +286,7 @@ abstract class PrepareJob
      * @return void The method does not return any value and will have the side effect of
      *              persisting the task DTO to the Action custom field.
      */
-    private function persistDtoToAction(Action $action = null, TaskResponseDto $dto = null)
+    private function persistDtoToAction($action = null, $dto = null)
     {
         try {
             if ($action === null || $dto === null) {
@@ -321,7 +321,10 @@ abstract class PrepareJob
 
         $jobDataDto = $this->job->getJobDataDto();
         $date = new \DateTime();
-        $date->setTimestamp($jobDataDto->getStartTime());
+        if (!empty($jobDataDto->getStartTime())) {
+            $date->setTimestamp($jobDataDto->getStartTime());
+        }
+
         $jobDuration = str_replace(['minutes', 'seconds'], ['min', 'sec'], $this->times->getHumanReadableDuration(gmdate('i:s', $jobDataDto->getDuration())));
 
         $body .= 'Started at: ' .  $date->format('H:i:s') . PHP_EOL ;

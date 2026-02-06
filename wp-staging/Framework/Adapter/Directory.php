@@ -8,6 +8,7 @@ use WPStaging\Framework\Utils\Strings;
 use WPStaging\Backup\Job\Jobs\JobRestore;
 use WPStaging\Backup\Service\Archiver;
 use WPStaging\Framework\Facades\Hooks;
+use WPStaging\Framework\Filesystem\Permissions;
 use WPStaging\Framework\Utils\Urls;
 use WPStaging\Framework\Utils\SlashMode;
 use WPStaging\Framework\Filesystem\Scanning\ScanConst;
@@ -32,58 +33,76 @@ class Directory implements DirectoryInterface
      */
     const TMP_THEMES_DIRECTORY = 'wpstg-tmp-themes';
 
-    /** @var string The directory that holds the uploads, usually wp-content/uploads */
+    /** @var string */
+    const FILTER_CACHE_DIRECTORY = 'wpstg.directory.cacheDirectory';
+
+    /** @var string */
+    const FILTER_PLUGIN_UPLOADS_DIRECTORY = 'wpstg.directory.pluginUploadsDirectory';
+
+    /** @var string */
+    const FILTER_PLUGIN_WP_CONTENT_DIRECTORY = 'wpstg.directory.pluginWpContentDirectory';
+
+    /** @var string */
+    const FILTER_CLONE_EXCLUDED_FOLDERS = 'wpstg_clone_excl_folders';
+
+    /** @var string */
+    const FILTER_CLONE_MU_EXCLUDED_FOLDERS = 'wpstg_clone_mu_excl_folders';
+
+    /** @var string */
+    const FILTER_GET_UPLOAD_DIR = 'wpstg_get_upload_dir';
+
+    /** @var string|null The directory that holds the uploads, usually wp-content/uploads */
     protected $uploadDir;
 
-    /** @var string The directory that holds the WP STAGING cache directory, usually wp-content/uploads/wp-staging/cache */
+    /** @var string|null The directory that holds the WP STAGING cache directory, usually wp-content/uploads/wp-staging/cache */
     protected $cacheDirectory;
 
-    /** @var string The directory that holds the WP STAGING backup tmp directory, usually wp-content/wp-staging/tmp/import */
+    /** @var string|null The directory that holds the WP STAGING backup tmp directory, usually wp-content/wp-staging/tmp/restore */
     protected $tmpDirectory;
 
-    /** @var string The directory that holds the WP STAGING logs directory, usually wp-content/uploads/wp-staging/logs */
+    /** @var string|null The directory that holds the WP STAGING logs directory, usually wp-content/uploads/wp-staging/logs */
     protected $logDirectory;
 
-    /** @var string The directory that holds the WP STAGING backup directory, usually wp-content/uploads/wp-staging/backups */
+    /** @var string|null The directory that holds the WP STAGING backup directory, usually wp-content/uploads/wp-staging/backups */
     protected $backupDirectory;
 
-    /** @var string The directory that holds the WP STAGING data directory inside uploads folder, usually wp-content/uploads/wp-staging */
+    /** @var string|null The directory that holds the WP STAGING data directory inside uploads folder, usually wp-content/uploads/wp-staging */
     protected $pluginUploadsDirectory;
 
-    /** @var string The directory that holds the WP STAGING data directory directly inside wp-content, usually wp-content/wp-staging */
+    /** @var string|null The directory that holds the WP STAGING data directory directly inside wp-content, usually wp-content/wp-staging */
     protected $pluginWpContentDirectory;
 
-    /** @var string The directory that holds the plugins, usually wp-content/plugins */
+    /** @var string|null The directory that holds the plugins, usually wp-content/plugins */
     protected $pluginsDir;
 
-    /** @var string The directory that holds the mu-plugins, usually wp-content/mu-plugins */
+    /** @var string|null The directory that holds the mu-plugins, usually wp-content/mu-plugins */
     protected $muPluginsDir;
 
-    /** @var array An array of directories that holds themes, usually ['wp-content/themes'] */
+    /** @var array|null An array of directories that holds themes, usually ['wp-content/themes'] */
     protected $themesDirs;
 
-    /** @var string The directory that holds the currently active theme, usually wp-content/themes */
+    /** @var string|null The directory that holds the currently active theme, usually wp-content/themes */
     protected $activeThemeParentDir;
 
-    /** @var array An array of default directories, such as ['wp-content/themes/', 'wp-content/plugins/', 'wp-content/mu-plugins/', 'wp-content/uploads/'] */
+    /** @var array|null An array of default directories, such as ['wp-content/themes/', 'wp-content/plugins/', 'wp-content/mu-plugins/', 'wp-content/uploads/'] */
     protected $defaultWordPressFolders;
 
-    /** @var string The directory that points to the wp-content folder, usually wp-content/ */
+    /** @var string|null The directory that points to the wp-content folder, usually wp-content/ */
     protected $wpContentDirectory;
 
-    /** @var string The directory that points to the wp-includes folder, usually wp-includes/ */
+    /** @var string|null The directory that points to the wp-includes folder, usually wp-includes/ */
     protected $wpIncludesDirectory;
 
-    /** @var string The directory that points to the wp-admin folder, usually wp-admin/ */
+    /** @var string|null The directory that points to the wp-admin folder, usually wp-admin/ */
     protected $wpAdminDirectory;
 
-    /** @var string The directory that points to the languages folder, usually wp-content/languages/ */
+    /** @var string|null The directory that points to the languages folder, usually wp-content/languages/ */
     protected $langDir;
 
-    /** @var string The directory that points to the ABSPATH folder */
+    /** @var string|null The directory that points to the ABSPATH folder */
     protected $absPath;
 
-    /** @var string The directory that points to main site uploads folder, usually wp-content/uploads */
+    /** @var string|null The directory that points to main site uploads folder, usually wp-content/uploads */
     protected $mainSiteUploadsDir;
 
     /** @var Filesystem */
@@ -92,7 +111,7 @@ class Directory implements DirectoryInterface
     /** @var Strings */
     protected $strUtils;
 
-    /** @var string The directory that points to the temp directory for downloads */
+    /** @var string|null The directory that points to the temp directory for downloads */
     protected $downloadsDirectory;
 
     /** @var string The directory that stores the sse events cache used for background logging */
@@ -193,7 +212,7 @@ class Directory implements DirectoryInterface
             return $this->cacheDirectory;
         }
 
-        $cachePath = Hooks::applyFilters('wpstg.directory.cacheDirectory', wp_normalize_path($this->getPluginUploadsDirectory() . 'cache'));
+        $cachePath = Hooks::applyFilters(self::FILTER_CACHE_DIRECTORY, wp_normalize_path($this->getPluginUploadsDirectory() . 'cache'));
 
         $this->cacheDirectory = trailingslashit($cachePath);
 
@@ -202,6 +221,7 @@ class Directory implements DirectoryInterface
 
     /**
      * @return string
+     * @throws Exception
      */
     public function getTmpDirectory(): string
     {
@@ -211,7 +231,31 @@ class Directory implements DirectoryInterface
 
         $this->tmpDirectory = trailingslashit(wp_normalize_path($this->getPluginWpContentDirectory() . JobRestore::TMP_DIRECTORY));
 
-        wp_mkdir_p($this->tmpDirectory);
+        try {
+            // Ensure parent tmp directory has correct permissions
+            // The path is wp-content/wp-staging/tmp/restore/, so we need to fix wp-content/wp-staging/tmp/
+            $parentTmpDir = trailingslashit($this->getPluginWpContentDirectory() . 'tmp');
+            $this->ensureDirectoryPermissions($parentTmpDir);
+
+            // Create directory if it doesn't exist
+            if (!file_exists($this->tmpDirectory)) {
+                wp_mkdir_p($this->tmpDirectory);
+            }
+
+            // Ensure the full tmp directory has correct permissions
+            $this->ensureDirectoryPermissions($this->tmpDirectory);
+
+            // Final validation
+            if (!is_readable($this->tmpDirectory)) {
+                throw new Exception(sprintf('Temporary directory is not readable: %s', $this->tmpDirectory));
+            }
+
+            if (!is_writable($this->tmpDirectory)) {
+                throw new Exception(sprintf('Temporary directory is not writable: %s', $this->tmpDirectory));
+            }
+        } catch (Exception $e) {
+            throw new Exception(sprintf('Failed to create or access temporary directory: %s - %s', $this->tmpDirectory, $e->getMessage()));
+        }
 
         return $this->tmpDirectory;
     }
@@ -269,8 +313,8 @@ class Directory implements DirectoryInterface
         }
 
         /** This is deprecated filter and its value should always be replaced by newer filter */
-        $pluginUploadsDir = Hooks::applyFilters('wpstg_get_upload_dir', wp_normalize_path($this->getUploadsDirectory($refresh) . WPSTG_PLUGIN_DOMAIN));
-        $pluginUploadsDir = Hooks::applyFilters('wpstg.directory.pluginUploadsDirectory', $pluginUploadsDir);
+        $pluginUploadsDir = Hooks::applyFilters(self::FILTER_GET_UPLOAD_DIR, wp_normalize_path($this->getUploadsDirectory($refresh) . WPSTG_PLUGIN_DOMAIN));
+        $pluginUploadsDir = Hooks::applyFilters(self::FILTER_PLUGIN_UPLOADS_DIRECTORY, $pluginUploadsDir);
 
         $this->pluginUploadsDirectory = trailingslashit($pluginUploadsDir);
 
@@ -287,7 +331,7 @@ class Directory implements DirectoryInterface
         }
 
         $pluginWpContentDir = $this->getWpContentDirectory() . WPSTG_PLUGIN_DOMAIN;
-        $pluginWpContentDir = Hooks::applyFilters('wpstg.directory.pluginWpContentDirectory', $pluginWpContentDir);
+        $pluginWpContentDir = Hooks::applyFilters(self::FILTER_PLUGIN_WP_CONTENT_DIRECTORY, $pluginWpContentDir);
 
         $this->pluginWpContentDirectory = trailingslashit($pluginWpContentDir);
 
@@ -681,5 +725,40 @@ class Directory implements DirectoryInterface
         }
 
         return $path;
+    }
+
+    /**
+     * Ensures a directory exists and has correct read/write permissions
+     *
+     * @param string $directory The directory path to check and fix
+     * @return void
+     * @throws Exception If permissions cannot be set
+     */
+    private function ensureDirectoryPermissions(string $directory)
+    {
+        // Create directory if it doesn't exist
+        if (!file_exists($directory)) {
+            wp_mkdir_p($directory);
+        }
+
+        // Check and fix permissions if directory is not readable or writable
+        // Return if permissions are already correct
+        if (is_readable($directory) && is_writable($directory)) {
+            return;
+        }
+
+        // Use WordPress directory permission constant, or fall back to 0755
+        $dirPermissions = defined('FS_CHMOD_DIR') ? FS_CHMOD_DIR : Permissions::DEFAULT_DIR_PERMISSION;
+
+        // Attempt to fix permissions
+        if (!@chmod($directory, $dirPermissions)) {
+            throw new Exception(
+                sprintf(
+                    'Failed to set permissions (%s) on directory: %s',
+                    decoct($dirPermissions),
+                    $directory
+                )
+            );
+        }
     }
 }

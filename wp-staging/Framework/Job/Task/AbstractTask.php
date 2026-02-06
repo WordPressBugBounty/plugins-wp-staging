@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Base class for individual tasks that execute within a multi-step job
+ *
+ * Provides common functionality for task execution including progress tracking,
+ * logging, caching, and response generation for long-running operations.
+ */
+
 namespace WPStaging\Framework\Job\Task;
 
 use Exception;
@@ -23,11 +30,30 @@ abstract class AbstractTask
 {
     use ResourceTrait;
 
+    /** @var string */
+    const FILTER_TASK_RESPONSE = 'wpstg.task.response';
+
+    /** @var string */
+    const FILTER_REMOTE_STORAGES_CHUNK_SIZE = 'wpstg.remoteStorages.chunkSize';
+
+    /** @var string */
+    const FILTER_REMOTE_STORAGES_DELAY_BETWEEN_REQUESTS = 'wpstg.remoteStorages.delayBetweenRequests';
+
+    /** @var string */
+    const FILTER_CHUNK_DOWNLOAD_CLOUD_FILE_TO_FOLDER_CHUNK_SIZE = 'wpstg.chunkDownloadCloudFileToFolder.chunkSize';
+
     /**
      * Action called when a task response is generated.
      * @var string
      */
     const ACTION_TASK_RESPONSE = 'wpstg_task_response';
+
+    /**
+     * Time threshold in seconds to stop a wait task to avoid resource holding in shared hosting.
+     * currently set to 0.5 seconds
+     * @var int
+     */
+    const WAIT_TASK_THRESHOLD_IN_MICROSECONDS = 500000;
 
     /** @var Logger */
     protected $logger;
@@ -62,6 +88,9 @@ abstract class AbstractTask
 
     /** @var SeekableQueueInterface */
     protected $taskQueue;
+
+    /** @var bool Whether this task is a wait task or not. */
+    protected $isWaitTask = false;
 
     public function __construct(LoggerInterface $logger, Cache $cache, StepsDto $stepsDto, SeekableQueueInterface $taskQueue)
     {
@@ -157,7 +186,9 @@ abstract class AbstractTask
         $response->setStatusTitle(static::getTaskTitle());
         $response->setJobId($this->jobDataDto->getId());
 
-        $this->updateTaskProgress($response);
+        if (!$this->isWaitTask) {
+            $this->updateTaskProgress($response);
+        }
 
         $this->addLogMessageToResponse($response);
 
@@ -179,12 +210,14 @@ abstract class AbstractTask
             $this->persistStepsDto();
         }
 
+        $this->job->getTransientCache()->update();
         Hooks::callInternalHook(self::ACTION_TASK_RESPONSE, [
             'jobDataDto'        => $this->jobDataDto,
-            'jobTransientCache' => $this->job->getTransientCache()
+            'jobTransientCache' => $this->job->getTransientCache(),
+            'isWaitTask'        => $this->isWaitTask,
         ]);
 
-        $response = apply_filters('wpstg.task.response', $response);
+        $response = Hooks::applyFilters(self::FILTER_TASK_RESPONSE, $response);
 
         return $response;
     }
@@ -251,7 +284,7 @@ abstract class AbstractTask
     public function setupLogger()
     {
         if ($this->logger instanceof Logger) {
-            $this->logger->setupSseLogger($this->jobId);
+            $this->logger->setupSseLogger((string)$this->jobId);
         }
     }
 
@@ -286,6 +319,14 @@ abstract class AbstractTask
     }
 
     /**
+     * @return void
+     */
+    public function persistJobDataDto()
+    {
+        $this->job->persistJobDataDto();
+    }
+
+    /**
      * @return TaskResponseDto
      */
     protected function getResponseDto()
@@ -298,7 +339,7 @@ abstract class AbstractTask
         if ($this->logger instanceof Logger) {
             $this->logger->pushSseEvent(SseEventCache::EVENT_TYPE_TASK, [
                 'title'      => $response->getStatusTitle(),
-                'percentage' => $response->getPercentage()
+                'percentage' => $response->getPercentage(),
             ]);
         }
     }

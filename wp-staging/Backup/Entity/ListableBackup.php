@@ -2,6 +2,20 @@
 
 namespace WPStaging\Backup\Entity;
 
+/**
+ * Entity representing a backup file for display in the backup list UI
+ *
+ * This class holds all the metadata and properties needed to display a backup in the
+ * WordPress admin interface, including:
+ * - Backup identification (name, ID, timestamps)
+ * - Content flags (database, plugins, themes, uploads, etc.)
+ * - Validation status (corrupt, valid, multipart integrity)
+ * - Display formatting (dates, size, download URL)
+ * - Backup type (single site, multisite, network subsite)
+ * - Version information and compatibility checks
+ *
+ * All properties are public for easy access in templates and AJAX responses.
+ */
 class ListableBackup
 {
     /** @var string */
@@ -76,6 +90,9 @@ class ListableBackup
     /** @var bool Whether this backup was automatically generated. (Eg: pushing staging into production) */
     public $automatedBackup = false;
 
+    /** @var string|null The schedule recurrence type (e.g., wpstg_hourly, wpstg_weekly, wpstg_monthly) */
+    public $scheduleRecurrence;
+
     /** @var bool Whether this listable refers to a legacy .SQL file backup */
     public $isLegacy = false;
 
@@ -120,6 +137,9 @@ class ListableBackup
 
     /** @var bool */
     public $isContaining2GBFile = false;
+
+    /** @var bool */
+    public $isUnsignedBackup = false;
 
     /**
      * @return string

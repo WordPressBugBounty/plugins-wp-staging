@@ -247,8 +247,8 @@ class Queue
      *
      * If the table does not exist, then the method will try to create or update it.
      *
-     * @param false $force Whether to force the check on the table or trust the state
-     *                     cached from a previous check.
+     * @param bool $force Whether to force the check on the table or trust the state
+     *                    cached from a previous check.
      *
      * @return int The value of one of the `TABLE` class constants to indicate the
      *             table status.
@@ -1188,7 +1188,7 @@ class Queue
             self::STATUS_READY,
             self::STATUS_COMPLETED,
             self::STATUS_FAILED,
-            self::STATUS_CANCELED
+            self::STATUS_CANCELED,
         ]);
         $cleanupQuery = "DELETE FROM {$tableName} 
             WHERE updated_at < '{$cleanupBreakpoint}'
@@ -1362,7 +1362,7 @@ class Queue
                 'class' => get_class($this),
                 'query' => $query,
                 'error' => $this->database->error(),
-                'jobId' => $jobId
+                'jobId' => $jobId,
             ]));
 
             // There has been an error fetching the results, bail.

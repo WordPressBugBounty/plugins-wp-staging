@@ -52,9 +52,6 @@ class SiteInfo
     /** @var string */
     const OTHER_HOST = 'other';
 
-    /** @var string */
-    const FILTER_IS_WPSTG_TESTS = 'wpstg.tests.is_local_site';
-
     /** @var string[] */
     const LOCAL_HOSTNAMES = [
         '.local',
@@ -63,7 +60,7 @@ class SiteInfo
         '.dev',
         '10.0.0.',
         '172.16.0.',
-        '192.168.0.'
+        '192.168.0.',
     ];
 
     /**
@@ -367,7 +364,7 @@ class SiteInfo
             }
         }
 
-        return Hooks::applyFilters(self::FILTER_IS_WPSTG_TESTS, $isLocal);
+        return apply_filters('wpstg.tests.is_local_site', $isLocal);
     }
 
     /**

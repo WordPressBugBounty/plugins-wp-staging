@@ -63,7 +63,9 @@ class FinishBackupTask extends BackupTask
 
         $this->analyticsBackupCreate->enqueueFinishEvent($this->jobDataDto->getId(), $this->jobDataDto);
 
-        $this->logger->info("################## FINISH ##################");
+        if (!$this->jobDataDto->getIsSyncRequest()) {
+            $this->logger->info("################## FINISH ##################");
+        }
 
         // This condition prevents duplicate log entries for a single backup process.
         // For example, in background (BG) backups, this task run twice, so we log it only once after the process completes.
@@ -107,7 +109,7 @@ class FinishBackupTask extends BackupTask
      */
     private function overrideGenerateResponse($backup = null)
     {
-        add_filter('wpstg.task.response', function ($response) use ($backup) {
+        add_filter(self::FILTER_TASK_RESPONSE, function ($response) use ($backup) {
 
             $md5 = $backup ? $backup->md5BaseName : null;
             if ($this->jobDataDto->getIsMultipartBackup()) {
@@ -116,7 +118,7 @@ class FinishBackupTask extends BackupTask
 
             if ($response instanceof FinalizeBackupResponseDto) {
                 $response->setBackupMd5($md5);
-                $response->setBackupSize($backup ? size_format($backup->size) : null);
+                $response->setBackupSize($backup ? $backup->size : null);
                 $response->setIsLocalBackup($this->jobDataDto->isLocalBackup());
                 $response->setIsMultipartBackup($this->jobDataDto->getIsMultipartBackup());
                 $response->setIsGlitchInBackup($this->jobDataDto->getIsGlitchInBackup());

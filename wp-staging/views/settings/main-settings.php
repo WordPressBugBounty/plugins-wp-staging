@@ -35,7 +35,7 @@ $siteInfo = WPStaging::make(SiteInfo::class);
                     add_query_arg(
                         [
                             "settings-updated" => false,
-                            "tab" => $id
+                            "tab"              => $id,
                         ],
                         $currentUrl
                     )
@@ -57,8 +57,14 @@ $siteInfo = WPStaging::make(SiteInfo::class);
             endforeach;
             ?>
         </ul>
+        <?php
+        $containerClass = '';
+        if ($activeTab === 'general') {
+            $containerClass = 'wpstg-settings-container';
+        }
+        ?>
 
-        <div class="wpstg-metabox-holder">
+        <div class="wpstg-metabox-holder <?php echo esc_html($containerClass); ?>">
             <?php
             if ($activeTab === 'general') {
                 $numberOfLoadingBars = 57;

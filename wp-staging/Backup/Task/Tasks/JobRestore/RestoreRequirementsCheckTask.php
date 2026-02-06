@@ -120,12 +120,17 @@ class RestoreRequirementsCheckTask extends RestoreTask
 
             $this->jobDataDto->setRequirementFailReason($e->getMessage());
             // todo: Set the requirement fail reason
-            $this->analyticsBackupRestore->enqueueFinishEvent($this->jobDataDto->getId(), $this->jobDataDto);
+            if (!$this->jobDataDto->getIsSyncRequest()) {
+                $this->analyticsBackupRestore->enqueueFinishEvent($this->jobDataDto->getId(), $this->jobDataDto);
+            }
 
             return $this->generateResponse(false);
         }
 
-        $this->analyticsBackupRestore->enqueueStartEvent($this->jobDataDto->getId(), $this->jobDataDto);
+        if (!$this->jobDataDto->getIsSyncRequest()) {
+            $this->analyticsBackupRestore->enqueueStartEvent($this->jobDataDto->getId(), $this->jobDataDto);
+        }
+
         $this->logger->info(__('Backup Requirements check passed...', 'wp-staging'));
 
         return $this->generateResponse();
@@ -239,7 +244,7 @@ class RestoreRequirementsCheckTask extends RestoreTask
 
             if (strlen($unprefixedName) + strlen(DatabaseImporter::TMP_DATABASE_PREFIX_TO_DROP) > 64) {
                 $requireShortNamesForTablesToDrop = true;
-                $shortName = uniqid(DatabaseImporter::TMP_DATABASE_PREFIX_TO_DROP) . str_pad(rand(0, 999999), 6, '0');
+                $shortName = uniqid(DatabaseImporter::TMP_DATABASE_PREFIX_TO_DROP) . str_pad((string)rand(0, 999999), 6, '0');
                 $this->jobDataDto->addShortNameTableToDrop($table->getName(), $shortName);
                 $this->logger->warning("MySQL has a limit of 64 characters for table names. One of your tables, combined with the temporary prefix used by the backup restore, would exceed this limit, therefore the backup will be restored with a shorter name and change it back to original name if restoration fails otherwise drop it along with other backups table. The table with the extra-long name is: \"{$table->getName()}\". It will be backup with the name: \"{$shortName}\", So in case anything goes wrong you can restore it back.");
             }
@@ -314,7 +319,7 @@ class RestoreRequirementsCheckTask extends RestoreTask
                 if ($this->isThreshold()) {
                     $this->jobDataDto->setExtractorFileWrittenBytes($fileObject->getSize());
                     $percentage = (int)(($writtenBytes / $estimatedSizeNeeded) * 100);
-                    throw ThresholdException::thresholdHit(sprintf('Checking if there is enough free disk space to restore... (%d%%)', esc_html($percentage)));
+                    throw ThresholdException::thresholdHit(sprintf('Checking if there is enough free disk space to restore... (%d%%)', esc_html((string)$percentage)));
                 }
 
                 $timesWritten = 0;
@@ -390,7 +395,7 @@ class RestoreRequirementsCheckTask extends RestoreTask
             return;
         }
 
-        if (version_compare((int)$this->jobDataDto->getBackupMetadata()->getWpDbVersion(), (int)$GLOBALS['wp_db_version'], '>')) {
+        if (version_compare((string)$this->jobDataDto->getBackupMetadata()->getWpDbVersion(), (string)$GLOBALS['wp_db_version'], '>')) {
             $this->logger->debug(sprintf(
                 'The backup is using an incompatible database schema version, generated in a newer version of WordPress. Schema version in the backup: %s. Current WordPress Schema version: %s',
                 $this->jobDataDto->getBackupMetadata()->getWpDbVersion(),

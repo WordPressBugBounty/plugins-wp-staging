@@ -30,11 +30,11 @@ abstract class JobExecutable extends Job
      * @var array
      */
     protected $response = [
-        "status"        => false,
-        "percentage"    => 0,
-        "total"         => 0,
-        "step"          => 0,
-        "last_msg"      => '',
+        "status"     => false,
+        "percentage" => 0,
+        "total"      => 0,
+        "step"       => 0,
+        "last_msg"   => '',
     ];
 
     /**
@@ -58,7 +58,7 @@ abstract class JobExecutable extends Job
         @ini_set('max_input_time', '-1');
 
         // Set maximum backtracking steps
-        @ini_set('pcre.backtrack_limit', PHP_INT_MAX);
+        @ini_set('pcre.backtrack_limit', (string)PHP_INT_MAX);
 
         $this->strUtil = WPStaging::make(Strings::class);
     }
@@ -83,13 +83,13 @@ abstract class JobExecutable extends Job
 
         $this->removeMemoryExhaustErrorTmpFile();
         return $this->response = [
-            "status"        => $status,
-            "percentage"    => $percentage,
-            "total"         => $this->options->totalSteps,
-            "step"          => $this->options->currentStep,
-            "job"           => $this->options->currentJob,
-            "last_msg"      => $this->logger->getLastLogMsg(),
-            "job_done"      => $status
+            "status"     => $status,
+            "percentage" => $percentage,
+            "total"      => $this->options->totalSteps,
+            "step"       => $this->options->currentStep,
+            "job"        => $this->options->currentJob,
+            "last_msg"   => $this->logger->getLastLogMsg(),
+            "job_done"   => $status,
         ];
     }
 

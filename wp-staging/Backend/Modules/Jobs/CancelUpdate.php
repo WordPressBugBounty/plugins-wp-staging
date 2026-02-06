@@ -60,7 +60,6 @@ class CancelUpdate extends Job
     public function check()
     {
         return (
-                isset($this->options) &&
                 isset($this->options->clone) &&
                 isset($this->options->cloneNumber) &&
                 isset($this->options->cloneDirectoryName) &&
@@ -77,11 +76,11 @@ class CancelUpdate extends Job
     {
 
         wp_die(json_encode([
-            'job' => 'delete',
-            'status' => true,
+            'job'     => 'delete',
+            'status'  => true,
             'message' => $message,
-            'error' => false,
-            'delete' => 'finished'
+            'error'   => false,
+            'delete'  => 'finished',
         ]));
     }
 

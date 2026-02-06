@@ -169,19 +169,19 @@ class Times
         // Add the hour part to the string.
         if (is_numeric($hour)) {
             /* translators: %s: Time duration in hour or hours. */
-            $human_readable_duration[] = sprintf(_n('%s hour', '%s hours', $hour, 'wp-staging'), (int)$hour);
+            $human_readable_duration[] = sprintf(_n('%s hour', '%s hours', (int)$hour, 'wp-staging'), (int)$hour);
         }
 
         // Add the minute part to the string.
         if (is_numeric($minute)) {
             /* translators: %s: Time duration in minute or minutes. */
-            $human_readable_duration[] = sprintf(_n('%s minute', '%s minutes', $minute, 'wp-staging'), (int)$minute);
+            $human_readable_duration[] = sprintf(_n('%s minute', '%s minutes', (int)$minute, 'wp-staging'), (int)$minute);
         }
 
         // Add the second part to the string.
         if (is_numeric($second)) {
             /* translators: %s: Time duration in second or seconds. */
-            $human_readable_duration[] = sprintf(_n('%s second', '%s seconds', $second, 'wp-staging'), (int)$second);
+            $human_readable_duration[] = sprintf(_n('%s second', '%s seconds', (int)$second, 'wp-staging'), (int)$second);
         }
 
         return implode(', ', $human_readable_duration);
@@ -288,5 +288,20 @@ class Times
     public function getCurrentTimestamp(): int
     {
         return (new DateTime('now', $this->getSiteTimezoneObject()))->getTimestamp();
+    }
+
+    /**
+     * Format query execution time to human-readable format
+     *
+     * @param float $seconds Time in seconds
+     * @return string Formatted time (e.g., "20.8 ms" or "2.35 s")
+     */
+    public static function formatQueryTime(float $seconds): string
+    {
+        if ($seconds < 1) {
+            return round($seconds * 1000, 1) . ' ms';
+        }
+
+        return round($seconds, 2) . ' s';
     }
 }

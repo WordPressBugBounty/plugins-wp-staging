@@ -11,9 +11,10 @@ class JobTransientCache
     /**
      * This is the time in seconds that the job transient will be kept.
      * This is used to show the current job status in the UI.
+     * Transient will be deleted automatically after this time if not deleted manually in case of inactivity.
      * @var int
      */
-    const JOB_TRANSIENT_EXPIRY = 60 * 60 * 6; // 6 hours
+    const JOB_TRANSIENT_EXPIRY = 60 * 6; // 6 minutes
 
     /**
      * This is the time in seconds that the job transient will be kept after the job is completed.
@@ -52,6 +53,11 @@ class JobTransientCache
     /**
      * @var string
      */
+    const STATUS_STALED = 'staled';
+
+    /**
+     * @var string
+     */
     const JOB_TYPE_BACKUP = 'Backup';
 
     /**
@@ -73,6 +79,16 @@ class JobTransientCache
      * @var string
      */
     const JOB_TYPE_STAGING_CREATE = 'Staging_Create';
+
+    /**
+     * @var string
+     */
+    const JOB_TYPE_STAGING_UPDATE = 'Staging_Update';
+
+    /**
+     * @var string
+     */
+    const JOB_TYPE_STAGING_RESET = 'Staging_Reset';
 
     /**
      * @var string
@@ -103,6 +119,8 @@ class JobTransientCache
         self::JOB_TYPE_PULL_PREPARE,
         self::JOB_TYPE_PULL_RESTORE,
         self::JOB_TYPE_STAGING_CREATE,
+        self::JOB_TYPE_STAGING_UPDATE,
+        self::JOB_TYPE_STAGING_RESET,
         self::JOB_TYPE_REMOTE_UPLOAD,
     ];
 
@@ -116,13 +134,14 @@ class JobTransientCache
     public function startJob(string $jobId, string $jobTitle, string $jobType = 'job', string $queueId = '')
     {
         $jobData = [
-            'jobId'   => $jobId,
-            'title'   => $jobTitle,
-            'type'    => $jobType,
-            'status'  => self::STATUS_RUNNING,
-            'start'   => time(),
-            'queueId' => $queueId,
-            'message' => ''
+            'jobId'     => $jobId,
+            'title'     => $jobTitle,
+            'type'      => $jobType,
+            'status'    => self::STATUS_RUNNING,
+            'startedAt' => time(),
+            'updatedAt' => time(),
+            'queueId'   => $queueId,
+            'message'   => '',
         ];
 
         delete_transient(self::TRANSIENT_CURRENT_JOB);
@@ -136,7 +155,8 @@ class JobTransientCache
     public function updateTitle(string $title)
     {
         $jobData = $this->getJob();
-        $jobData['title'] = $title;
+        $jobData['title']     = $title;
+        $jobData['updatedAt'] = time();
 
         set_transient(self::TRANSIENT_CURRENT_JOB, $jobData, self::JOB_TRANSIENT_EXPIRY);
     }
@@ -199,6 +219,18 @@ class JobTransientCache
     }
 
     /**
+     * @return void
+     */
+    public function update()
+    {
+        $jobData = $this->getJob();
+        $jobData['updatedAt'] = time();
+
+        delete_transient(self::TRANSIENT_CURRENT_JOB);
+        set_transient(self::TRANSIENT_CURRENT_JOB, $jobData, self::JOB_TRANSIENT_EXPIRY);
+    }
+
+    /**
      * @param string $status
      * @param string $title
      * @param string $message
@@ -207,7 +239,8 @@ class JobTransientCache
     private function stopJob(string $status, string $title = '', string $message = '')
     {
         $jobData = $this->getJob();
-        $jobData['status'] = $status;
+        $jobData['status']    = $status;
+        $jobData['updatedAt'] = time();
         if (!empty($title)) {
             $jobData['title'] = $title;
         }

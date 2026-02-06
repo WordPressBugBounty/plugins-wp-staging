@@ -8,7 +8,7 @@ use WPStaging\Framework\Utils\SlashMode;
 use WPStaging\Framework\Utils\WpDefaultDirectories;
 use RuntimeException;
 use WPStaging\Framework\Adapter\Directory;
-use WPStaging\Framework\Facades\Hooks;
+use WPStaging\Staging\Tasks\StagingSite\FileAdjustment\UpdateWpConfigConstantsTask;
 use WPStaging\Framework\SiteInfo;
 
 class UpdateWpConfigConstants extends FileCloningService
@@ -47,7 +47,7 @@ class UpdateWpConfigConstants extends FileCloningService
             "DISABLE_WP_CRON"     => (isset($this->dto->getJob()->getOptions()->cronDisabled) && $this->dto->getJob()->getOptions()->cronDisabled) ? 'true' : 'false',
             "WP_ENVIRONMENT_TYPE" => sprintf("'%s'", 'staging'),
             "WP_DEVELOPMENT_MODE" => sprintf("'%s'", 'all'),
-            "WPSTAGING_DEV_SITE"  => 'true'
+            "WPSTAGING_DEV_SITE"  => 'true',
         ];
 
         if (!$isWpContentOutsideAbspath) {
@@ -83,7 +83,7 @@ class UpdateWpConfigConstants extends FileCloningService
         }
 
         // turn off debug constants on staging site
-        if (!Hooks::applyFilters(self::FILTER_PRESERVE_DEBUG_CONSTANTS, false)) {
+        if (!apply_filters(self::FILTER_PRESERVE_DEBUG_CONSTANTS, false)) {
             $replaceOrAdd['WP_DEBUG']         = 'false';
             $replaceOrAdd['WP_DEBUG_LOG']     = 'false';
             $replaceOrAdd['WP_DEBUG_DISPLAY'] = 'false';
@@ -122,6 +122,10 @@ class UpdateWpConfigConstants extends FileCloningService
             $delete[] = "WP_CONTENT_URL";
         }
 
+        if ($this->dto->isExternal() && !$this->dto->getExternalDatabaseSsl()) {
+            $delete[] = "MYSQL_CLIENT_FLAGS";
+        }
+
         /**
          * Allows to filter the constants to be replaced/added.
          *
@@ -129,7 +133,7 @@ class UpdateWpConfigConstants extends FileCloningService
          *
          * @return array The array of constants.
          */
-        $replaceOrAdd = (array)apply_filters('wpstg_constants_replace_or_add', $replaceOrAdd);
+        $replaceOrAdd = (array)apply_filters(UpdateWpConfigConstantsTask::FILTER_CONSTANTS_REPLACE_OR_ADD, $replaceOrAdd);
 
         $content = $this->readWpConfig();
         foreach ($replaceOrAdd as $constant => $newDefinition) {

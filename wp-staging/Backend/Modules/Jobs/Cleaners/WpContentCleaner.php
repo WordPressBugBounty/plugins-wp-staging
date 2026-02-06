@@ -2,7 +2,7 @@
 
 namespace WPStaging\Backend\Modules\Jobs\Cleaners;
 
-use WPStaging\Backend\Modules\Jobs\Files;
+use WPStaging\Backend\Modules\Jobs\JobExecutable;
 use WPStaging\Framework\Filesystem\PartIdentifier;
 use WPStaging\Framework\Utils\WpDefaultDirectories;
 use WPStaging\Framework\Utils\SlashMode;
@@ -27,7 +27,7 @@ class WpContentCleaner
     private $job;
 
     /**
-     * @param Files $job
+     * @param JobExecutable $job
      */
     public function __construct($job)
     {
@@ -66,7 +66,7 @@ class WpContentCleaner
         $wpDirectories = new WpDefaultDirectories();
         $directory     = trailingslashit($directory);
         $paths         = [];
-        if ($options->deleteUploadsFolder && !$options->backupUploadsFolder && $options->statusContentCleaner = 'pending') {
+        if ($options->deleteUploadsFolder && !$options->backupUploadsFolder && $options->statusContentCleaner === 'pending') {
             $paths[] = trailingslashit($directory . $wpDirectories->getRelativeUploadPath());
         }
 
@@ -89,7 +89,7 @@ class WpContentCleaner
         if ($options->statusContentCleaner === 'pending') {
             $this->logs[] = [
                 "msg"  => __("Files: Cleaning up directories: Plugins, Themes, Uploads!", "wp-staging"),
-                "type" => Logger::TYPE_INFO
+                "type" => Logger::TYPE_INFO,
             ];
 
             $options->statusContentCleaner = 'cleaning';
@@ -112,7 +112,7 @@ class WpContentCleaner
         } catch (\RuntimeException $ex) {
             $this->logs[] = [
                 "msg"  => sprintf(__("Files: Error - %s. Content cleaning.", "wp-staging"), $ex->getMessage()),
-                "type" => Logger::TYPE_ERROR
+                "type" => Logger::TYPE_ERROR,
             ];
             return false;
         }
@@ -122,13 +122,13 @@ class WpContentCleaner
         if (!$options->deletePluginsAndThemes) {
             $this->logs[] = [
                 "msg"  => __("Files: Skipped cleaning Plugins and Themes directories!", "wp-staging"),
-                "type" => Logger::TYPE_INFO
+                "type" => Logger::TYPE_INFO,
             ];
         }
 
         $this->logs[] = [
             "msg"  => __("Files: Finished cleaning!", "wp-staging"),
-            "type" => Logger::TYPE_INFO
+            "type" => Logger::TYPE_INFO,
         ];
 
         return true;

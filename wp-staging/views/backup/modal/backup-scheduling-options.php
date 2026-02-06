@@ -31,7 +31,12 @@ $proFeature = $isProVersion ? ' ' : ' (Pro Feature)';
             <option value="<?php echo esc_attr(Cron::TWELVE_HOURS); ?>" <?php echo esc_attr($disabledProAttribute); ?>><?php echo esc_html(Cron::getCronDisplayName(Cron::TWELVE_HOURS)) . esc_html($proFeature); ?></option>
             <option value="<?php echo esc_attr(Cron::DAILY); ?>" selected> <?php echo esc_html(Cron::getCronDisplayName(Cron::DAILY));?></option>
             <option value="<?php echo esc_attr(Cron::EVERY_TWO_DAYS); ?>" <?php echo esc_attr($disabledProAttribute); ?>><?php echo esc_html(Cron::getCronDisplayName(Cron::EVERY_TWO_DAYS)) . esc_html($proFeature); ?></option>
-            <option value="<?php echo esc_attr(Cron::WEEKLY); ?>" <?php echo esc_attr($disabledProAttribute); ?>><?php echo esc_html(Cron::getCronDisplayName(Cron::WEEKLY)) . esc_html($proFeature); ?></option>
+            <?php // Weekly schedules with day selection (1-7: Monday-Sunday, ISO 8601) ?>
+            <?php for ($day = 1; $day <= 7; $day++) :
+                $weeklyDay = Cron::WEEKLY . '_' . $day;
+                ?>
+            <option value="<?php echo esc_attr($weeklyDay); ?>" <?php echo esc_attr($disabledProAttribute); ?>><?php echo esc_html(Cron::getCronDisplayName($weeklyDay)) . esc_html($proFeature); ?></option>
+            <?php endfor; ?>
             <option value="<?php echo esc_attr(Cron::EVERY_TWO_WEEKS); ?>" <?php echo esc_attr($disabledProAttribute); ?>><?php echo esc_html(Cron::getCronDisplayName(Cron::EVERY_TWO_WEEKS)) . esc_html($proFeature); ?></option>
             <option value="<?php echo esc_attr(Cron::MONTHLY); ?>" <?php echo esc_attr($disabledProAttribute); ?>><?php echo esc_html(Cron::getCronDisplayName(Cron::MONTHLY)) . esc_html($proFeature); ?></option>
         </select>
@@ -85,7 +90,7 @@ $proFeature = $isProVersion ? ' ' : ' (Pro Feature)';
             </label>
             <select name="backupScheduleRotation" id="backupScheduleRotation">
                 <?php for ($i = 1; $i <= 10; $i++) : ?>
-                    <option value="<?php echo esc_attr($i) ?>" <?php echo $isProVersion ? "" : ($i === 1 ? 'selected' : 'disabled') ?>>
+                    <option value="<?php echo esc_attr((string)$i) ?>" <?php echo $isProVersion ? "" : ($i === 1 ? 'selected' : 'disabled') ?>>
                         <?php echo sprintf(esc_html__('Keep last %d backup%s', 'wp-staging'), (int)$i, (int)$i > 1 ? 's' : ''); ?>
                     </option>
                 <?php endfor; ?>

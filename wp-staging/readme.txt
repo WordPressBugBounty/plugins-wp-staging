@@ -8,8 +8,8 @@ License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: backup, backups, migrate, migration, wordpress backup
 Requires at least: 3.6+
-Tested up to: 6.8
-Stable tag: 4.3.1
+Tested up to: 6.9
+Stable tag: 4.5.0
 Requires PHP: 7.0
 
 Backup & Backup Restore. Migration & Staging – 1-Click Enterprise Backup Plugin, 100% Unit Tested. Keep Your Backups Safe and Secure.
@@ -286,6 +286,85 @@ That is where WP STAGING shows its strengths... Site cloning, backup, and stagin
 9. Staging demo site
 
 == Changelog ==
+
+= 4.5.0 =
+* New: Create local containerized and docker compatible development environments with wp staging cli. (Requires Pro Developer or Agency Plan) #4759
+* New: Beautify changelog section to make it more appealing. #4724
+* Enh: Add a preview of the selected options when the menus are collapsed. #4419
+* Enh: Add ability to select a specific day of the week when creating a weekly scheduled backup. (Pro) #4670
+* Enh: Improved email notification options for better user alerts. #4154
+* Fix: Avoid OPcache "restrict_api" warnings in staging by properly handling restricted OPcache API paths. #4678
+* Fix: Avoid fatal type errors when filtering the active plugins list during database restore and database pull for multisite if the active plugins options become corrupted. #4666
+* Fix: Clean up plugins data on uninstall. #4583
+* Fix: Clean up temporary validation directory before starting the backup process. #4625
+* Fix: Corrected display issues in some admin messages to ensure text appears properly. #4716
+* Fix: Dynamically fetch AWS S3 regions from AWS API with fallback to static list. (Pro) #4684
+* Fix: Fail to create staging site after making a push. Get file permission error. (Pro) #4748
+* Fix: Improve CLI modal reliability and backup UI, including a new sidebar and step navigation, custom header, visual feedback animation, copy button fix, and clearer date column styling. #4759
+* Fix: Inconsistent font size in modal popups. #4721
+* Fix: Logs are displayed even when their corresponding log type checkbox is not checked #4656
+* Fix: Unable to create multisite backup when current network id not 1. #4697
+* Fix: Valid permissions could be incorrectly rejected by isValidPermission(). #4749
+* UX: Fix broken CSS and improve remote backup download modal with file size display and download button text improved. #4730
+* Dev: Fix slowness in `make reset` dev command. #4742
+* Dev: Improve macOS compatibility for development environment setup and build processes. #4567
+* Dev: Increased time tolerance for scheduled backups to allow execution at any time of day. #4737
+* Dev: Migrate wpstg-restorer codeception tests to Playwright for improved test reliability. #4071
+* Dev: Move all staging(tests/e2e/Staging) e2e codeception tests to playwright. #4561
+* Dev: Refactor and prepare code base for newer staging site update and reset logic using backuper pattern. #4537
+* Dev: Skip unrequired and slow unit tests for Windows OS to speed it up. #4735
+* Dev: Use constant for non-test filters in whole code base. #4236
+* Dev: Fix mailhog email tests failing on macOS by making the API URL configurable via environment variable. #4769
+
+= 4.4.0 =
+* New: Compatible up to WordPress 6.9
+* New: Tested up to PHP 8.5 RC5.
+* New: Create local containerized and docker compatible development environments with wp staging cli. (Requires Pro Developer Plan or higher) #4688
+* New: Add support for uploading backup files to shared Google Drive folders. (Pro) #3993
+* New: Add autoscroll toggle to log modals. Hovering or scrolling inside the log window pauses automatic scrolling, allowing users to review previous log entries while new ones arrive. Hovering outside re-enables autoscroll. A small "Autoscroll: on/off" indicator appears in the bottom-right corner. Increases performance by reducing unnecessary scroll events when users are interacting with the log content and caching DOM elements. #4614
+* New: Redesign the settings page with a cleaner layout and better visual hierarchy. #4595
+* Enh: Make pro features dynamically accessible based on license types. (Pro) #4558
+* Enh: Show backup storage connection test results in modal instead of toast when there is an error or warning. (Pro) #4463
+* Fix: Ensure the initial login session on new staging sites follows the default WordPress session expiration. (Pro) #4646
+* Fix: Fixes very rare file index issues on misconfigured and buggy server by implementing the filter `wpstg.job.performance_mode` (when set to `safe`). #4628
+* Fix: Show clearer error messages when a directory is not writable due to permission issues or open_basedir restrictions. #4679
+* Fix: Increase default ZIP file size limit from 10 MB to 50 MB during backup creation. #4674
+* Fix: Simplify logout logic during database restore to avoid potential 503 error that disrupt the logout workflow. #4633
+* Fix: Allow emails with subdomains when creating temporary login users. (Pro) #4621
+* Fix: Show backup size in the UI for corrupted backups. #4637
+* Fix: Prevent 'E_STRICT' deprecation notice on PHP 8.4+. #4544
+* Fix: Don't copy background processor table wpstg_queue during cloning. #4636
+* Fix: Several fixes and UX improvements to the cli modals #4707
+* Fix: Allow 5-site Business license to have access to all Pro features (Pro) #4691
+* Fix: Make buttons grey when license is not active #4682
+* Fix: Exclude debug.log from backup creation by default #4693
+* UX: Enhance the license activation error notice to display a clearer and more informative message when activation fails due to any error. (Pro) #4657
+* Dev: Convert codeception remote storage tests to Playwright. #4551
+* Dev: Fix flaky playwright tests. #4662
+* Dev: Make code base pass with phpstan level 5. #4650
+* Dev: Refactored `getLoaderAndSwal` to ensure single responsibility by separating loader initialization and display logic. #4640
+* Dev: Make code base pass with phpstan level 4. #4648
+* Dev: Use updated playwright docker image #4699
+
+= 4.3.2 =
+* New: Compatible up to WordPress 6.8.3.
+* Enh: Present new automatic login to staging sites. #4585
+* Fix: Resolved incorrect file path issue that was preventing old backup files from being deleted on FTP/SFTP servers. (Pro) #4582
+* Fix: Resolved issue preventing data from being saved in the clone edit modal. (Pro) #4600
+* Fix: Upload backup using the URL is not working, stuck at 0%. #4588
+* Fix: Add additional JavaScript backup URL validation to ensure only valid .wpstg backup files are accepted. #4504
+* Fix: Auto-login occasionally fails on older staging sites. (Pro) #4607
+* Fix: False 'Insufficient Database Permissions' warning when database name contains escaped underscores. (Pro) #4590
+* Fix: Backup upload failure for wasabi s3 due to timeout on fast server. (Pro) #4616
+* Fix: Database prefixes were not replaced for subsites when restoring multisite backups. #4578
+* Fix: Case-Insensitive file conflict in same directory. #4612
+* Dev: Move `renderAlertMessage` into the correct UI namespace for cleaner architecture. #4573
+* Dev: Improve phpcs rules to catch and fix file formatting (space left over or wrong indentation). #4250
+* Dev: Add analytics for remote sync feature. Change authentication workflow for remote sync. Add truly background support for one way remote sync. #4515
+* Dev: Implement site-specific reset command functionality. #2877
+* Dev: Add phpcs new rules. #4602
+* Dev: Update login form snapshots. #4592
+* Dev: Wrong string formatting and phpcs issues. #4598
 
 = 4.3.1 =
 * Enh: Add filter `wpstg.backup.restore.exclude.tables` to support excluding of specific tables during the backup restore process. #4430
@@ -1192,5 +1271,5 @@ WP STAGING Backup & Cloning | Full changelog:
 [https://wp-staging.com/wp-staging-changelog](https://wp-staging.com/wp-staging-changelog)
 
 == Upgrade Notice ==
-Compatible up to WordPress 6.8.1.
+Compatible up to WordPress 6.8.3.
 Many improvements for reliability and bug fixes. Please update to the latest version!

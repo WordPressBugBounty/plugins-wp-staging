@@ -4,7 +4,9 @@ use WPStaging\Backup\Service\ZlibCompressor;
 use WPStaging\Framework\Facades\Escape;
 use WPStaging\Core\WPStaging;
 use WPStaging\Framework\Adapter\Directory;
+use WPStaging\Framework\Facades\UI\Alert;
 use WPStaging\Framework\Utils\Urls;
+use WPStaging\Core\Cron\Cron;
 
 /**
  * @var \WPStaging\Framework\TemplateEngine\TemplateEngine $this
@@ -33,10 +35,11 @@ $isProVersion           = WPStaging::isPro();
 $requires64Bit          = empty($size) && (PHP_INT_SIZE !== 8);
 $isContaining2GbFile    = $backup->isContaining2GBFile;
 $backupVersion          = $backup->generatedOnBackupVersion;
+$isUnsignedBackup       = $backup->isUnsignedBackup;
 
 // Default error message
 if (empty($indexFileError)) {
-    $indexFileError = __("This backup has an invalid files index. Please create a new backup!", 'wp-staging');
+    $indexFileError = __("This backup has an invalid files index.", 'wp-staging');
 }
 
 // Download URL of backup file
@@ -233,7 +236,8 @@ $wpstgRestorePageUrl = add_query_arg([
             <?php endif; ?>
             <li>
                 <strong><?php esc_html_e('Size: ', 'wp-staging'); ?></strong>
-                <?php echo $requires64Bit ? '<b class="wpstg--red"> 2GB+ </b>' : esc_html($size); ?>
+                <?php echo $requires64Bit ? '<b class="wpstg--red"> 2GB+ </b>' : esc_html((string)size_format($size, 2));?>
+
             </li>
             <?php if (!$isCorrupt) : ?>
                 <li class="single-backup-includes">
@@ -252,7 +256,16 @@ $wpstgRestorePageUrl = add_query_arg([
                 </li>
                 <?php if ($automatedBackup) : ?>
                     <li class="wpstg-automated-backup">
-                        <img class="wpstg--dashicons wpstg-dashicons-19 wpstg-dashicons-grey wpstg--backup-automated" src="<?php echo esc_url($urlAssets); ?>svg/update.svg"/> <?php esc_html_e('Backup created automatically.', 'wp-staging'); ?>
+                        <img class="wpstg--dashicons wpstg-dashicons-19 wpstg-dashicons-grey wpstg--backup-automated" src="<?php echo esc_url($urlAssets); ?>svg/update.svg"/> 
+                        <?php
+                        $message = 'Backup created automatically.';
+                        if (!empty($backup->scheduleRecurrence)) {
+                            $scheduleDisplay = Cron::getCronDisplayName($backup->scheduleRecurrence);
+                            $message = sprintf(__('Backup created automatically (%s).', 'wp-staging'), esc_html($scheduleDisplay));
+                        }
+
+                        echo esc_html($message);
+                        ?>
                     </li>
                 <?php endif; ?>
                 <?php if ($isLegacy) : ?>
@@ -275,24 +288,35 @@ $wpstgRestorePageUrl = add_query_arg([
                     $extraMessage
                 );
 
-                $this->getAssets()->renderAlertMessage($title, $description);
+                Alert::render($title, $description);
+            }
+
+            $errors = [];
+            if ($isCorrupt) {
+                $errors[] = __('This backup file is corrupt.', 'wp-staging');
             }
 
             if (!$isMultipartBackup && !$isValidFileIndex && !$requires64Bit) {
-                $title = __('Corrupted Backup', 'wp-staging');
-                $this->getAssets()->renderAlertMessage($title, $indexFileError);
+                $errors[] = $indexFileError;
             }
 
-            if ($isCorrupt) {
-                $title       = __('Corrupted Backup', 'wp-staging');
-                $description = __('This backup file is corrupt. Please create a new backup!', 'wp-staging');
-                $this->getAssets()->renderAlertMessage($title, $description);
+            if ($isUnsignedBackup) {
+                $errors[] = __('Backup file couldn’t be signed properly.', 'wp-staging');
             }
+
+            if (!empty($errors)) {
+                $title       = __('Corrupted Backup', 'wp-staging');
+                $description = implode(' ', $errors);
+                $footer      = __('Please create a new backup.', 'wp-staging');
+
+                Alert::render($title, $description . ' ' . $footer);
+            }
+
 
             if ($isUnsupported && !$isCorrupt) {
                 $title       = __('Backup Restore Requires Upgrade', 'wp-staging');
                 $description = __('This backup was generated on a beta version of WP STAGING and cannot be restored with the current version.', 'wp-staging');
-                $this->getAssets()->renderAlertMessage($title, $description);
+                Alert::render($title, $description);
             }
 
             if ($backup->isZlibCompressed && !$compressor->supportsCompression()) {
@@ -303,13 +327,13 @@ $wpstgRestorePageUrl = add_query_arg([
                 );
                 $buttonText  = __('Learn how to fix it', 'wp-staging');
                 $buttonUrl   = 'https://wp-staging.com/how-to-install-and-activate-gzcompress-and-gzuncompress-functions-in-php/';
-                $this->getAssets()->renderAlertMessage($title, $description, $buttonText, $buttonUrl);
+                Alert::render($title, $description, $buttonText, $buttonUrl);
             } elseif ($backup->isZlibCompressed && $compressor->supportsCompression() && !$compressor->canUseCompression()) {
                 $title       = __('Upgrade required', 'wp-staging');
                 $description = __('This backup is compressed, you need WP Staging Pro to restore it.', 'wp-staging');
                 $buttonText  = __('Get WP Staging Pro', 'wp-staging');
                 $buttonUrl   = 'https://wp-staging.com?utm_source=wpstg-license-ui&utm_medium=website&utm_campaign=compressed-backup-restore&utm_id=purchase-key&utm_content=wpstaging';
-                $this->getAssets()->renderAlertMessage($title, $description, $buttonText, $buttonUrl);
+                Alert::render($title, $description, $buttonText, $buttonUrl);
             }
             ?>
         </ul>

@@ -77,13 +77,20 @@ class BackgroundLogger
      */
     public function restEventStream(WP_REST_Request $request)
     {
-        @ini_set('zlib.output_compression', 0);
+        @ini_set('zlib.output_compression', '0');
         @ini_set('output_buffering', 'off');
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
 
-        @ob_implicit_flush(1);
+        // PHP 8.0+ expects bool, earlier versions expect int
+        if (PHP_VERSION_ID >= 80000) {
+            // @phpstan-ignore-next-line - PHPStan stubs may expect int for compatibility
+            @ob_implicit_flush(true);
+        } else {
+            // @phpstan-ignore-next-line - PHP < 8.0 expects int, not bool
+            @ob_implicit_flush(1);
+        }
         flush();
 
         $this->setHeaders();
@@ -145,6 +152,16 @@ class BackgroundLogger
                         'type'    => Logger::TYPE_ERROR,
                         'date'    => $event['data']['time'],
                         'message' => "Memory exceed allowed size! Allowed memory: {$event['data']['allowedMemoryLimit']} bytes. Exceeded memory: {$event['data']['exhaustedMemorySize']} bytes",
+                    ]));
+                    continue;
+                }
+
+                if ($event['type'] === SseEventCache::EVENT_TYPE_FATAL_ERROR) {
+                    $this->output($jobId, SseEventCache::EVENT_TYPE_FATAL_ERROR, json_encode($event['data']));
+                    $this->output($jobId, '', json_encode([
+                        'type'    => Logger::TYPE_ERROR,
+                        'date'    => $event['data']['time'],
+                        'message' => "Job failed due to a fatal error! Error data: " . print_r($event['data'], true),
                     ]));
                     continue;
                 }

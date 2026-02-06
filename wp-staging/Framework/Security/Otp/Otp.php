@@ -169,7 +169,7 @@ class Otp
 
         $waitBeforeVerify = $this->checkOtpVerificationLocked();
         if ($waitBeforeVerify > 0) {
-            throw new OtpException(sprintf(esc_html__('OTP verification is locked! Try again in after %s...', 'wp-staging'), esc_html($waitBeforeVerify) . 's'), 403);
+            throw new OtpException(sprintf(esc_html__('OTP verification is locked! Try again in after %s...', 'wp-staging'), esc_html((string)$waitBeforeVerify) . 's'), 403);
         }
 
         if (empty($_REQUEST['sessionId'])) {
@@ -292,9 +292,9 @@ class Otp
 
         $otps = get_option(static::OPTION_NAME, []);
         $otps[$userID][$sessionId] = [
-            'otp' => $this->dataEncryption->encrypt($otp),
+            'otp'        => $this->dataEncryption->encrypt($otp),
             'created_at' => time(),
-            'expiry_at' => time() + static::OTP_EXPIRATION,
+            'expiry_at'  => time() + static::OTP_EXPIRATION,
         ];
 
         update_option(static::OPTION_NAME, $otps);
@@ -323,7 +323,7 @@ class Otp
         $max    = 10 ** self::OTP_LENGTH;
         $newOtp = rand($min, $max - 1);
         // Early bail: A otp is always a 6-characters random string.
-        if (strlen($newOtp) !== self::OTP_LENGTH) {
+        if (strlen((string)$newOtp) !== self::OTP_LENGTH) {
             throw new OtpException('Invalid OTP generated');
         }
 

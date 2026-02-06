@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Orchestrates the complete backup creation workflow for WordPress sites
+ *
+ * Manages the multi-stage backup process including database export, file scanning,
+ * archiving, validation, and cleanup across multiple HTTP requests.
+ */
+
 namespace WPStaging\Backup\Job\Jobs;
 
 use WPStaging\Backup\Dto\Job\JobBackupDataDto;
@@ -15,6 +22,7 @@ use WPStaging\Backup\Task\Tasks\JobBackup\FilesystemScannerTask;
 use WPStaging\Backup\Task\Tasks\JobBackup\FinalizeBackupTask;
 use WPStaging\Backup\Task\Tasks\JobBackup\FinishBackupTask;
 use WPStaging\Backup\Task\Tasks\JobBackup\IncludeDatabaseTask;
+use WPStaging\Backup\Task\Tasks\JobBackup\RecalibrateFilesCountTask;
 use WPStaging\Backup\Task\Tasks\JobBackup\ScheduleBackupTask;
 use WPStaging\Backup\Task\Tasks\JobBackup\SignBackupTask;
 use WPStaging\Backup\Task\Tasks\JobBackup\ValidateBackupTask;
@@ -45,7 +53,12 @@ class JobBackup extends AbstractJob
         try {
             $response = $this->getResponse($this->currentTask->execute());
         } catch (\Exception $e) {
-            $this->currentTask->getLogger()->critical('Backup job failed! Error: ' . $e->getMessage());
+            $title = $this->currentTask->getTaskTitle();
+            if (empty($title)) {
+                $title = 'Backup job';
+            }
+
+            $this->currentTask->getLogger()->critical($title . ' failed! Error: ' . $e->getMessage());
             $response = $this->getResponse($this->currentTask->generateResponse(false));
         }
 
@@ -104,6 +117,10 @@ class JobBackup extends AbstractJob
         $this->addFinalizeTask();
         if ($this->jobDataDto->getRepeatBackupOnSchedule()) {
             $this->addSchedulerTask();
+        }
+
+        if (!$this->jobDataDto->getIsMultipartBackup()) {
+            $this->tasks[] = RecalibrateFilesCountTask::class;
         }
 
         /**

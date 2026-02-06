@@ -1,22 +1,49 @@
 <?php
 
+/**
+ * Data transfer object for storing and persisting job state across HTTP requests
+ *
+ * Holds all job data including queue offsets, task information, and progress tracking
+ * that needs to survive between HTTP requests during long-running operations.
+ */
+
 namespace WPStaging\Framework\Job\Dto;
 
+use WPStaging\Framework\Facades\Hooks;
 use WPStaging\Framework\Queue\FinishedQueueException;
 
 use function WPStaging\functions\debug_log;
 
 class JobDataDto extends AbstractDto
 {
-    /**
-     * @var string
-     */
+    /** @var string */
     const FILTER_IS_MULTIPART_BACKUP = 'wpstg.backup.isMultipartBackup';
+
+    /** @var string */
+    const FILTER_MAX_MULTIPART_BACKUP_SIZE = 'wpstg.backup.maxMultipartBackupSize';
+
+    /** @var string */
+    const FILTER_RESOURCES_EXECUTION_TIME_LIMIT = 'wpstg.resources.executionTimeLimit';
+
+    /** @var string */
+    const FILTER_RESOURCES_BACKUP_RESTORE_MAX_EXECUTION_TIME_IN_SECONDS = 'wpstg.resourceTrait.backupRestoreMaxExecutionTimeInSeconds';
+
+    /** @var string */
+    const FILTER_RESOURCES_FILE_APPEND_TIME_LIMIT = 'wpstg.resource.file_append_time_limit';
+
+    /** @var string */
+    const FILTER_RESOURCES_IGNORE_TIME_LIMIT = 'wpstg.resources.ignoreTimeLimit';
+
+    /** @var string */
+    const FILTER_RESOURCES_MEMORY_LIMIT = 'wpstg.resources.memoryLimit';
+
+    /** @var string */
+    const FILTER_RESOURCES_IGNORE_MEMORY_LIMIT = 'wpstg.resources.ignoreMemoryLimit';
 
     /**
      * @var string
      */
-    const FILTER_MAX_MULTIPART_BACKUP_SIZE = 'wpstg.backup.maxMultipartBackupSize';
+    const FILTER_PERFORMANCE_MODE = 'wpstg.job.performance_mode';
 
     /** @var string|int|null */
     protected $id;
@@ -374,7 +401,7 @@ class JobDataDto extends AbstractDto
     }
 
     /**
-     * @param bool $queueOffset
+     * @param int $queueOffset
      */
     public function setQueueOffset($queueOffset)
     {
@@ -681,5 +708,22 @@ class JobDataDto extends AbstractDto
     public function resetNumberOfRetries()
     {
         $this->numberOfRetries = 0;
+    }
+
+    public function getIsFastPerformanceMode(): bool
+    {
+        $mode = Hooks::applyFilters(self::FILTER_PERFORMANCE_MODE, 'fast');
+
+        // Default to fast mode
+        if (empty($mode)) {
+            return true;
+        }
+
+        $mode = strtolower($mode);
+        if (!in_array($mode, ['fast', 'safe'], true)) {
+            return true;
+        }
+
+        return $mode === 'fast';
     }
 }

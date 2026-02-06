@@ -79,7 +79,7 @@ abstract class Job implements ShutdownableInterface
     protected $logger;
 
     /**
-     * @var object
+     * @var object|null
      */
     protected $options;
 
@@ -354,7 +354,7 @@ abstract class Job implements ShutdownableInterface
                     'job'     => isset($this->options->currentJob) ? $this->options->currentJob : '',
                     'status'  => false,
                     'message' => esc_html($message),
-                    'error'   => true
+                    'error'   => true,
                 ]
             )
         );
