@@ -1,4 +1,4 @@
-=== WP STAGING - WordPress Backups, Restore, Migration & Clone ===
+=== WP STAGING - Backups & Restore, Migration & Clone Plugin - Cloud Backups, Scheduled Backups ===
 
 Contributors: WP-Staging, WPStagingBackup, ReneHermi, lucatume, lucasbustamante, alaasalama, fayyazfayzi
 Donate link: https://wp-staging.com/backup-wordpress
@@ -7,7 +7,7 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: backup, wordpress backup, restore, move, transfer
 Requires at least: 3.6
 Tested up to: 7.1
-Stable tag: 4.12.0
+Stable tag: 4.13.1
 Requires PHP: 7.0
 
 WordPress backup plugin: backups, restore & migration in minutes. Clone or duplicate your site, test updates on a staging copy. 100% unit-tested.
@@ -283,52 +283,67 @@ The features below are available in [WP STAGING | PRO](https://wp-staging.com/ba
 
 == Changelog ==
 
-= 4.12.0 =
-* Enh: Redesign backup creation modal with Full Site / Custom Backup. #4924
-* Fix: Close the placeholder tab when magic login fails. (Pro) #5553
-* Fix: Editing a backup schedule no longer reverts to the old time after a later re-cron. (Pro) #5616
-* Fix: End the Update Protection wait when the backup it started finishes, instead of leaving the popup stuck on a backup that already completed. #5909
-* Fix: Fail a restore loudly when a shortened table name is missing instead of writing broken SQL. #5634
-* Fix: Harden the staging site email reminder - its disable link is now authorised by a secret unique to that staging site, and secret tokens are compared in constant time. #5813
-* Fix: Include a reply-to address and site context in the corrupted staging sites report email. (Pro) #5893
-* Fix: Keep the restore alive when a preserved option is stored in a shape its sanitize callback rejects. #5857
-* Fix: Log which folders a backup restore deletes before it deletes them. #4418
-* Fix: Pad the random suffix of a shortened table name leftwards, so two different draws no longer collide. #5634
-* Fix: Preserve each subsite's domain and active plugins in network clones. (Pro) #5977
-* Fix: Prevent a critical error when opening WP Staging pages on hosting setups where another plugin conflicts with the optimizer. #5404
-* Fix: Prevent the staging login form from being processed on production sites, and improve compatibility with login security plugins. #5794
-* Fix: Reactivate every WP STAGING plugin after a restore, so Pro is not left disabled by its missing free plugin. #5857
-* Fix: Remember a failed magic login availability check for a minute. (Pro) #5553
-* Fix: Remove the competitor backup plugin notice that could get stuck on screen. #5923
-* Fix: Render process log messages as text so stored markup cannot run script in wp-admin. #5884
-* Fix: Require the Wasabi custom region to be filled in before the storage settings can be saved. (Pro) #5918
-* Fix: Restore the 15 second timeout of the magic login availability check. (Pro) #5553
-* Fix: Run a backup explorer search typed while the file list is still loading, instead of ignoring it. #6029
-* Fix: Safely handle wpstg_data_excl_rows filter values in Next-Gen cloning. #5845
-* Fix: Send the WordPress.com upgrade link to the localized pricing page with campaign tracking. #5939
-* Fix: Send the upgrade links shown when a backup cannot be restored to the pricing page in your own language. #5941
-* Fix: Show every backup stored on Dropbox, not only the first ones, so the backup list and the automatic clean-up of old backups both see all of them. (Pro) #5910
-* Fix: Show the memory exhaustion help in the process log as readable text with a link. #5884
-* Fix: Switching SFTP to FTPS no longer leaves the password field blurred and unclickable. #5919
-* Fix: Translate the hosting provider exclusion notice, the temporary login error, the reminder disable message, the admin footer links and the backup modal's cloud storage description, which were shown in English on non-English sites. #5929
-* Fix: Treat a 503 from the staging site as unavailable, not rate-limited. (Pro) #5553
-* Ux: Calculate the estimated backup size automatically when the backup window opens, and again whenever the selection changes. #5899
-* Dev: Allow Playwright to use a worktree's runtime URL. #5948
-* Dev: Announce each release in the WordPress.org support forum as a step of the release procedure. #5944
-* Dev: Assign every new pull request to its author. #5902
-* Dev: Diagnose a failed CI run before re-running it, and treat a *-failed label beside ready-for-review as a test to fix. #5904
-* Dev: Keep PR titles aligned with the issue they answer by pointing create-pr and work-on-issue at the pr-issue-titles skill. #5968
-* Dev: Keep the code review and simplifier passes running under Claude Code 2.1.219, and ship the post-push CI hook with the repository instead of one developer's home directory. #5930
-* Dev: Make code reviews blocking-only and give non-blocking findings somewhere to go. #5911
-* Dev: Point the review-pr skill at review-own-diff for the merge-base rule instead of restating it. #5933
-* Dev: Print a compact summary while tests pass and the full report only when one fails. #5980
-* Dev: Run PHP 8.5 fast tests only in the full matrix. #5894
-* Dev: Set the naming standard for methods and variables, and stop the review skills from dropping names that misdescribe what they name. #5974
-* Dev: Skip the reviewer request on rene-hermenau's own skill and infrastructure PRs; every other author still gets one. #5972
-* Dev: Stop a cancelled fast-test run from overwriting the verdict of the run that replaced it. #5988
-* Dev: Stop the Remote Sync tests putting their own license back on the remote site, which made a push look as if it had overwritten the license there. #5979
-* Dev: Stop the restore requirements test faking multisite on a single site, which crashed the whole single-site unit suite. #5952
-* Dev: Stop the review-pr skill from reviewing a pull request another reviewer was already asked to review. #5936
+= 4.13.1 =
+* New: Back up a staging site automatically before you update it, so an update that goes wrong can be undone. (Pro) #1873
+* New: Repair a damaged backup from the command line. Everything still readable is written into new backup files you can restore. (Pro) #2255
+* Enh: Describe the command line tool by what it does for Developer and Agency plans: pull a live site to your computer with one command. #6031
+* Enh: Never delay an update on a staging site. A staging site is where updates are meant to be tried out. #6028
+* Enh: Plugin updates now start the moment you click update. The recovery backup runs behind them and a panel in the corner reports it. #6028
+* Enh: Rename the free plugin on WordPress.org so people searching for a backup plugin find it. #5205
+* Enh: Run backups and cloud uploads through the same background engine, so a long job is less likely to be interrupted. #5950
+* Enh: Switch Update Protection off in one click from that panel. A backup the updates are waiting on is cancelled with it. #6028
+* Fix: A restore no longer breaks sites whose plugins link database tables to one another. #5244
+* Fix: Block backups and restores on PHP versions we have not tested yet, starting with PHP 8.6. #5494
+* Fix: Create and push a staging site faster on tables whose rows hold a lot of data. #5986
+* Fix: Delete only the tables that belong to the staging site when it lives in its own database. #6088
+* Fix: Delete the temporary plugin folders a restore leaves behind once they pile up, instead of letting them fill the disk. #1598
+* Fix: Ignore tampered entries in the active plugin and login session lists while pushing. (Pro) #5411
+* Fix: Keep cloud storage credentials out of System Info and the log files, and check the storage settings before they are saved. #6001
+* Fix: Keep the licence section and other status messages visible when the Disable WP Notification plugin is active. #5880
+* Fix: Keep the list of plugins a push has to restore even when no plugin is active on the staging site. (Pro) #5411
+* Fix: Name the actual folder paths in the error a restore shows when it cannot move files, on every host. #5943
+* Fix: Name the operation that is actually running when Remote Sync is blocked, instead of always saying a sync is already in progress. #5456
+* Fix: Never delete a table of the live site during database cleanup, and handle table names that contain special characters. #6005
+* Fix: Never delete a table of your live site when a staging site is deleted or its creation is cancelled. #6088
+* Fix: Offer to carry on with a restore when the database refuses a table that has two automatic timestamp columns (MySQL error 1293), instead of stopping. #2063
+* Fix: Replace the site address in every row of a table when creating or pushing a staging site, including when the database search and replace limit is set low. #5986
+* Fix: Report a background job that failed on PHP 8, including a failure on the source site during a Remote Sync pull. #5967
+* Fix: Report a finished backup as finished on PHP 7.0 to 7.3, so the staging site update waiting for it can carry on. #6118
+* Fix: Save the FTP/SFTP settings when an SSH key is already stored. (Pro) #5920
+* Fix: Show an unexpected server response as plain text, so markup inside it cannot run in the WordPress admin. #5990
+* Fix: Show what is wrong with cloud storage settings in the page itself, where the message stays readable, instead of in a browser tooltip. (Pro) #5039
+* Fix: Start a backup from the Remote Sync window without having to close it first. (Pro) #5063
+* Fix: Stop a cancelled staging job writing an error into the browser console. #6011 #5613
+* Fix: Stop a fatal error on the staging site when the login form cannot start up. #6079
+* Fix: Stop an error when the progress window is closed while a job is still reporting into it. #6049
+* Fix: Stop backup, restore and Remote Sync logs repeating every line, which duplicated entries and made the log files far larger than they should be. #5330
+* Fix: Switch the database's foreign key checks back on after deleting tables, even when the previous setting could not be read. #6019
+* Fix: Update the Start Upload button as soon as a cloud storage is selected. (Pro) #5950
+* Fix: Use the correct table prefix when pushing with the Classic engine, keep the Desktop link inside its banner, and allow a backup to be cancelled only once preparation has finished. #6061
+* Fix: WP Staging Free now says the daily backup runs at 12:00 midnight, not noon. #6018
+* Fix: Wait as long as the cloud storage asks for when it limits the upload rate, instead of failing the upload. (Pro) #6038
+* Fix: Write settings and user data safely to the database when pushing, so an unusual value cannot change the query it is written with. (Pro) #5411
+* UX: Make WP Staging Desktop easy to find on the Staging screen. Developer and Agency plans get a link beside the local site action, every other plan a discovery card. The label under the local site button reads "CLI" where that link sits next to it. #6046
+*  Tweak: Show the background option only when a backup is being created. #6085
+* Dev: Add a rule that a fix for one operating system must not change behaviour on the others. #6069
+* Dev: Add a skill that keeps the Free vs Pro marketing copy in step with what the plugin can do. #6016
+* Dev: Add the Free vs Pro comparison document the website and the in-plugin upgrade table are built from. #5235
+* Dev: Assert the polled listing count in the cloud storage integration tests. #6050
+* Dev: Correct the licence matrix, which said the free plugin cannot schedule backups when it schedules one daily backup. #6083
+* Dev: Document dispatching a single CI shard instead of re-running a whole test suite. #6034
+* Dev: End the release procedure with a team note for Slack. #6060
+* Dev: Give a pull request a subject label derived from its branch type when its issue has none. #6006
+* Dev: Give the development nginx its own address on macOS instead of the bridge gateway. #5965
+* Dev: Keep the release changelog intact when the prepare phase runs more than once. #6126
+* Dev: Let the process log and update notification specs wait for the page they drive. #6120
+* Dev: Let the work-on-issue skill open its own GitHub issue when the request arrives as prose, and provision a worktree with no dependencies or build. #6032
+* Dev: Mark wp.org release notes resolved and keep entries that mention Pro as written. #6057
+* Dev: Prevent a root-owned core cache from blocking worktree provisioning. #6055
+* Dev: Remove the deprecated WpDefaultDirectories::getExcludedDirectories() method. #5478
+* Dev: Run the Pro end-to-end suite once, after the review fixes, and keep the rule for that ordering in one place. #6015
+* Dev: Run the Slack notification test without a web server. #6052
+* Dev: Skip Jetpack in the wordpress.com test fixture on PHP versions it no longer supports. #6119
+* Dev: Write down the Free and Pro boundary: Free previews a Pro feature, only Pro implements it. #6091
 
 WP STAGING Backup & Cloning | Full changelog:
 [https://wp-staging.com/wp-staging-changelog](https://wp-staging.com/wp-staging-changelog)
